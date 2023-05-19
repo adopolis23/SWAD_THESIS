@@ -22,9 +22,9 @@ num_classes = 10
 input_shape = (28, 28, 1)
 
 #model parameters
-batch_size = 1
+batch_size = 256
 learning_rate = 0.001
-epochs = 1
+epochs = 15
 
 #SWA parameters
 loss_threshold = 0.3500
@@ -88,16 +88,19 @@ class swa_callback(keras.callbacks.Callback):
     def __init__(self, model):
         #self.model = model
         self.loss_tracker = []
-        
+        self.epoch_tracker = 1
 
 
 
-    def on_train_batch_end(self, batch, logs=None):
-        if logs["loss"] <= loss_threshold and len(weights) <= max_weights_to_save and batch % save_stride == 0:
-            #print("\nSaving weights from exmaple {} with loss {}".format(batch, logs["loss"]))
+    def on_epoch_end(self, batch, logs=None):
+        #if logs["loss"] <= loss_threshold and len(weights) <= max_weights_to_save and batch % save_stride == 0:
+        if self.epoch_tracker >= 10:
+            print("\nSaving weights from epoch {} with loss {}".format(self.epoch_tracker, logs["val_loss"]))
 
             self.loss_tracker.append(logs["loss"])
             weights.append(model.get_weights())
+
+        self.epoch_tracker += 1
 
 
 

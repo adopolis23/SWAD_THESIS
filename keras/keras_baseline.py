@@ -19,9 +19,9 @@ num_classes = 10
 input_shape = (28, 28, 1)
 
 #model parameters
-batch_size = 1
+batch_size = 256
 learning_rate = 0.001
-epochs = 1
+epochs = 15
 
 
 
