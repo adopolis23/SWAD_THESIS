@@ -5,6 +5,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow import keras
 
 
+#function returns a model defined here
 def Generate_Model_1(num_classes, input_shape):
     model = Sequential()
 
