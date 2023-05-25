@@ -13,7 +13,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 
 from sklearn.model_selection import train_test_split
 
-from ModelGen import Generate_Model_1
+from ModelGen import Generate_Model_1, Generate_Model_2
 
 
 
@@ -89,12 +89,24 @@ x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_siz
 
 
 
+def constant_lr_schedule():
+    return learning_rate
 
-            
+    
 
+class LearningRateScheduler(keras.callbacks.Callback):
 
+    def __init__(self, schedule):
+        super().__init__()
+        self.schedule = schedule
+    
+    def on_epoch_begin(self, epoch, logs=None):
+        if not hasattr(self.model.optimizer, "lr"):
+            raise ValueError('Optimizer must have a "lr" attribute.')
 
-
+        scheduled_lr = self.schedule()
+        tf.keras.backend.set_value(self.model.optimizer.lr, scheduled_lr)
+        print("\nEpoch %05d: Learning rate is %6.4f." % (epoch, scheduled_lr))
 
 
 
@@ -102,7 +114,7 @@ x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_siz
 
 #build the model
 #model definition in modelGen file
-model = Generate_Model_1(num_classes, input_shape)
+model = Generate_Model_2(num_classes, input_shape)
 
 print(model.summary())
 
@@ -111,7 +123,6 @@ print(model.summary())
 
 weights = []
 new_weights = list()
-
 
 
 #create callback for weight averaging
@@ -126,14 +137,14 @@ class swad_callback(keras.callbacks.Callback):
 
 
     #function called at the end of every batch
-    def on_train_batch_end(self, batch, logs=None):
+    def on_epoch_end(self, epoch, logs=None):
 
-        if logs["loss"] <= loss_threshold and len(weights) <= max_weights_to_save and batch % save_stride == 0 and self.epoch_tracker >= int((1-percent_save) * epochs):
-            print("\nSaving weights from batch {} with loss {}".format(batch, logs["loss"]))
+        #if logs["loss"] <= loss_threshold and len(weights) <= max_weights_to_save and batch % save_stride == 0 and self.epoch_tracker >= int((1-percent_save) * epochs):
+        print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["loss"]))
 
-            #save loss and weights for this batch
-            self.loss_tracker.append(logs["loss"])
-            weights.append(model.get_weights())
+        #save loss and weights for this batch
+        self.loss_tracker.append(logs["val_loss"])
+        weights.append(model.get_weights())
 
         self.epoch_tracker += 1
 
@@ -142,8 +153,12 @@ class swad_callback(keras.callbacks.Callback):
 
     #function called at the end of training
     def on_train_end(self, logs=None):
-        print("\nEnd of Training; Averaging Weights.")
+        print("\nEnd of Training")
 
+        plt.plot(self.loss_tracker)
+        plt.show()
+
+        print("\nAveraging Weights.")
         #average up all saved weights and store them in new_weights
         for weights_list_tuple in zip(*weights): 
             new_weights.append(
@@ -175,7 +190,8 @@ model.fit(x_train, y_train,
               epochs=epochs,
               validation_data=(x_valid, y_valid),
               shuffle=True,
-              callbacks=[swad_callback()])
+              callbacks=[swad_callback(),
+                        LearningRateScheduler(constant_lr_schedule)])
 
 
 
