@@ -6,6 +6,7 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import math
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNormalization
@@ -52,11 +53,16 @@ num_classes = 10
 input_shape = (28, 28, 1)
 
 #model parameters
-batch_size = 128
-learning_rate = 0.001
-epochs = 20
+batch_size = 32
+learning_rate = 0.0005
+epochs = 100
 
 #SWAD parameters
+NS = 3 #optimum patience
+NE = 6 #overfit patience
+r = 1.3 #tolerance ratio
+
+#SWAD extras
 percent_save = 0.25 #what percentage of epochs to comeplete before saving weights
 loss_threshold = 0.3500 #start saving weights once loss reaches a certain threshold
 max_weights_to_save = 100000 #max weights that can be saved
@@ -106,7 +112,7 @@ class LearningRateScheduler(keras.callbacks.Callback):
 
         scheduled_lr = self.schedule()
         tf.keras.backend.set_value(self.model.optimizer.lr, scheduled_lr)
-        print("\nEpoch %05d: Learning rate is %6.4f." % (epoch, scheduled_lr))
+        print("\nEpoch {}: Learning rate is {}.".format(epoch, scheduled_lr))
 
 
 
@@ -117,6 +123,44 @@ class LearningRateScheduler(keras.callbacks.Callback):
 model = Generate_Model_2(num_classes, input_shape)
 
 print(model.summary())
+
+
+
+
+
+#algorithm to find start and end iteration for averaging from section B.4 in paper
+def findStartAndEnd(val_loss):
+    ts = 0
+    te = len(val_loss)
+    l = None
+
+    for i in range(NS-1, len(val_loss)):
+        
+        min1 = math.inf
+        for j in range(NE):
+            if val_loss[i-j] < min1:
+                min1 = val_loss[i-j]
+        
+        if l == None:
+            
+            min = math.inf
+            for j in range(NS):
+                if val_loss[i-j] < min:
+                    min = val_loss[i-j]
+
+            if val_loss[i-NS+1] == min:
+
+                ts = i-NS+1
+                sums = 0
+                for j in range(NS):
+                    sums = sums + val_loss[i-j]
+                l = (r/NS)*sums
+        
+        elif l < min1:
+            te = i-NE
+            break
+    return ts, te, l
+
 
 
 
@@ -140,7 +184,7 @@ class swad_callback(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
 
         #if logs["loss"] <= loss_threshold and len(weights) <= max_weights_to_save and batch % save_stride == 0 and self.epoch_tracker >= int((1-percent_save) * epochs):
-        print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["loss"]))
+        print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["val_loss"]))
 
         #save loss and weights for this batch
         self.loss_tracker.append(logs["val_loss"])
@@ -157,6 +201,9 @@ class swad_callback(keras.callbacks.Callback):
 
         plt.plot(self.loss_tracker)
         plt.show()
+
+        ts, te, l = findStartAndEnd(self.loss_tracker)
+        print("ts is {} and te is {} and l is {}".format(ts, te, l))
 
         print("\nAveraging Weights.")
         #average up all saved weights and store them in new_weights
