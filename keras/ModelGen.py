@@ -1,6 +1,6 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNormalization
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
 
 from tensorflow import keras
 
@@ -63,6 +63,34 @@ def Generate_Model_2(num_classes, input_shape):
     #model.add(Activation('relu'))
     #model.add(Dropout(0.2))
 
+
+    #output softmax layer
+    model.add(Dense(num_classes))
+    model.add(Activation('softmax'))
+
+    return model
+
+
+def LeNet5(num_classes, input_shape):
+    model = Sequential()
+
+    model.add(Conv2D(6, (5,5), input_shape=input_shape))
+    model.add(Activation('relu'))
+
+    model.add(AveragePooling2D())
+
+    model.add(Conv2D(16, (5,5), input_shape=input_shape))
+    model.add(Activation('relu'))
+
+    model.add(AveragePooling2D())
+
+    model.add(Flatten())
+
+    model.add(Dense(120))
+    model.add(Activation('relu'))
+
+    model.add(Dense(84))
+    model.add(Activation('relu'))
 
     #output softmax layer
     model.add(Dense(num_classes))

@@ -14,7 +14,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 
 from sklearn.model_selection import train_test_split
 
-from ModelGen import LeNet5, Generate_Model_2
+from ModelGen import Generate_Model_1, Generate_Model_2
 
 
 
@@ -53,8 +53,8 @@ input_shape = (28, 28, 1)
 
 #model parameters
 batch_size = 32
-learning_rate = 0.0005
-epochs = 100
+learning_rate = 0.001
+epochs = 70
 
 #SWAD parameters
 NS = 3 #optimum patience
@@ -122,7 +122,7 @@ class LearningRateScheduler(keras.callbacks.Callback):
 
 #build the model
 #model definition in modelGen file
-model = LeNet5(num_classes, input_shape)
+model = Generate_Model_2(num_classes, input_shape)
 
 print(model.summary())
 
@@ -183,13 +183,14 @@ class swad_callback(keras.callbacks.Callback):
 
 
     #function called at the end of every batch
-    def on_epoch_end(self, epoch, logs=None):
+    def on_train_batch_end(self, batch, logs=None):
 
         #if logs["loss"] <= loss_threshold and len(weights) <= max_weights_to_save and batch % save_stride == 0 and self.epoch_tracker >= int((1-percent_save) * epochs):
-        print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["val_loss"]))
+
+        val_loss = validate()[0]
 
         #save loss and weights for this batch
-        self.loss_tracker.append(logs["val_loss"])
+        self.loss_tracker.append(val_loss)
         weights.append(model.get_weights())
 
         self.epoch_tracker += 1
@@ -209,8 +210,8 @@ class swad_callback(keras.callbacks.Callback):
 
 
         #save loss to csv
-        #df = pd.DataFrame(self.loss_tracker)
-        #df.to_csv('loss.csv') 
+        df = pd.DataFrame(self.loss_tracker)
+        df.to_csv('loss.csv') 
 
 
         pruned_weights = []
