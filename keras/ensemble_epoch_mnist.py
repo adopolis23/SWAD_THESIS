@@ -19,6 +19,13 @@ from ModelGen import LeNet5, Generate_Model_2
 
 
 '''
+Uses an ensemble approach on the MNIST dataset. I save weights from some epochs 
+then create a number of models for those weights and have them vote on an answer. 
+
+Right now after training it takes the saved weights and pickes N weight sets with the 
+lowest loss to create the ensemble. Where N is the number of models specified.
+
+Make sure that the number of epochs is higher than the number of models you want.
 
 
 Brandon Weinhofer
@@ -38,10 +45,10 @@ batch_size = 64
 learning_rate = 0.0005
 
 #num of epochs must be more than the num of models
-epochs = 20
+epochs = 100
 
 #number of models
-n_models = 5
+n_models = 8
 
 
 
@@ -68,16 +75,13 @@ x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_siz
 
 
 
-def validate():
-    return model.evaluate(x_valid, y_valid, verbose=1)
 
-
-
+#learning rate schedule
 def constant_lr_schedule():
     return learning_rate
 
-    
 
+#callback function for learning rate
 class LearningRateScheduler(keras.callbacks.Callback):
 
     def __init__(self, schedule):
@@ -95,12 +99,9 @@ class LearningRateScheduler(keras.callbacks.Callback):
 
 
 
-
+#model generation from external file
 model = Generate_Model_2(num_classes, input_shape)
-
 print(model.summary())
-
-
 
 
 
@@ -120,13 +121,12 @@ class weight_saver_callback(keras.callbacks.Callback):
         #list to track loss over training
         self.loss_tracker = []
 
-        self.epoch_tracker = 1
+        self.epoch_tracker = 0
 
 
     #function called at the end of every batch
     def on_epoch_end(self, epoch, logs=None):
 
-        #if logs["loss"] <= loss_threshold and len(weights) <= max_weights_to_save and batch % save_stride == 0 and self.epoch_tracker >= int((1-percent_save) * epochs):
         print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["val_loss"]))
 
         #save loss and weights for this batch
@@ -162,7 +162,7 @@ model.fit(x_train, y_train,
                         LearningRateScheduler(constant_lr_schedule)])
 
 
-
+#finds the index of an array that has the minimum value
 def findMinIndex(arr):
     minVal = math.inf
     minIndex = 0
@@ -178,7 +178,8 @@ def findMinIndex(arr):
 
 models = list()
 
-print("Creating Ensemble")
+
+print("Creating Ensemble...")
 for i in range(n_models):
 
     #find the index of the weights with the curent min loss
@@ -217,6 +218,10 @@ def evaluate_models(model_list):
     #for every training example
     for i in range(len(x_test)):
 
+        #for testing only use forst 1000
+        if i > 1000:
+            break
+
         if i % check_freq == 0:
             print("Evaluating example: {}".format(i))
 
@@ -247,9 +252,6 @@ def evaluate_models(model_list):
 
 ens_accuracy = evaluate_models(models)
 print("\nAccuracy of ensemble is: {}".format(ens_accuracy))
-
-
-
 
 
 

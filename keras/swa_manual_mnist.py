@@ -29,9 +29,6 @@ percentage of training you would like to pass before you
 start saving epoch weights. For example a value of 0.25 means
 that only the last 25% of epochs will be averaged together. 
 
-TODO:
-Write the learning rate scheduler to add a cyclic learning rate 
-option
 
 
 Brandon Weinhofer

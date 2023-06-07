@@ -20,23 +20,13 @@ from ModelGen import LeNet5, Generate_Model_2
 
 '''
 SWAD is a continuation of SWA where weights are averaged much more
-frequently than in vanilla SWA. Weights averaging can be controlled by one
-or more of the following parameters: Percent_save - the percentage of the
-training that should be saved for the average ex. 0.25 means that the last
-25% of training will be saved. Loss_threshold - Weights will only be saved once
-the loss has dropped below this threshold. Max_weights_to_save - max amount of 
-weights that can be considered in the average. Save_stride - the gap in iterations
-between weights saves.
+frequently than in vanilla SWA. Weights are saved after every iteration. 
 
 These saved weights are then averaged together then the weights in the 
 model are updated with this new average. 
 
 TODO:
-Write the learning rate scheduler to add a cyclic learning rate 
-option
-
-Write a validation method so that SWAD can use validation loss rather
-than training loss. 
+Refactor the validation loss function. 
 
 
 Brandon Weinhofer
@@ -57,15 +47,9 @@ learning_rate = 0.0005
 epochs = 100
 
 #SWAD parameters
-NS = 3 #optimum patience
-NE = 6 #overfit patience
-r = 1.3 #tolerance ratio
-
-#SWAD extras
-percent_save = 0.25 #what percentage of epochs to comeplete before saving weights
-loss_threshold = 0.3500 #start saving weights once loss reaches a certain threshold
-max_weights_to_save = 100000 #max weights that can be saved
-save_stride = 30 #how many iteration gap between saves
+NS = 4 #optimum patience
+NE = 3 #overfit patience
+r = 1 #tolerance ratio
 
 
 
@@ -91,17 +75,17 @@ x_test = x_test.astype("float32") / 255
 x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.1, random_state=0, stratify=y_train)
 
 
-
+#returns the validation loss of the model
 def validate():
     return model.evaluate(x_valid, y_valid, verbose=1)
 
 
-
+#learning rate scheudle - constant
 def constant_lr_schedule():
     return learning_rate
 
     
-
+#call back class for the learning rate schedule 
 class LearningRateScheduler(keras.callbacks.Callback):
 
     def __init__(self, schedule):
@@ -123,7 +107,6 @@ class LearningRateScheduler(keras.callbacks.Callback):
 #build the model
 #model definition in modelGen file
 model = LeNet5(num_classes, input_shape)
-
 print(model.summary())
 
 
@@ -178,14 +161,12 @@ class swad_callback(keras.callbacks.Callback):
 
         #list to track loss over training
         self.loss_tracker = []
-
         self.epoch_tracker = 1
 
 
     #function called at the end of every batch
     def on_epoch_end(self, epoch, logs=None):
 
-        #if logs["loss"] <= loss_threshold and len(weights) <= max_weights_to_save and batch % save_stride == 0 and self.epoch_tracker >= int((1-percent_save) * epochs):
         print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["val_loss"]))
 
         #save loss and weights for this batch
@@ -201,18 +182,20 @@ class swad_callback(keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         print("\nEnd of Training")
 
-        plt.plot(self.loss_tracker)
-        plt.show()
+        #optional plot loss
+        #plt.plot(self.loss_tracker)
+        #plt.show()
 
+        #find start and end iteraiton to save weigths
         ts, te, l = findStartAndEnd(self.loss_tracker)
         print("ts is {} and te is {} and l is {}".format(ts, te, l))
 
 
-        #save loss to csv
+        #optional save loss to csv
         #df = pd.DataFrame(self.loss_tracker)
         #df.to_csv('loss.csv') 
 
-
+        #find the weights that are between ts and te and save them in pruned_weights
         pruned_weights = []
         for i in range(len(weights)):
             if i >= ts and i <= te:
@@ -221,6 +204,7 @@ class swad_callback(keras.callbacks.Callback):
 
         print("\nAveraging Weights.")
         #average up all saved weights and store them in new_weights
+        #NOTE Weight averaging!
         for weights_list_tuple in zip(*pruned_weights): 
             new_weights.append(
                 np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])

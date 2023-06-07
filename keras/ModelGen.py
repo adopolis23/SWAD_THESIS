@@ -71,6 +71,7 @@ def Generate_Model_2(num_classes, input_shape):
     return model
 
 
+#LeNet5 model - found several definitions of this online this might not be the most accurate
 def LeNet5(num_classes, input_shape):
     model = Sequential()
 
@@ -97,3 +98,6 @@ def LeNet5(num_classes, input_shape):
     model.add(Activation('softmax'))
 
     return model
+
+
+#TODO create a resnet model
