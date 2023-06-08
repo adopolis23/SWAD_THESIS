@@ -41,7 +41,7 @@ num_classes = 10
 input_shape = (28, 28, 1)
 
 #model parameters
-batch_size = 64
+batch_size = 32
 learning_rate = 0.0005
 
 #num of epochs must be more than the num of models
