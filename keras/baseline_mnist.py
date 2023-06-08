@@ -10,7 +10,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 
 from sklearn.model_selection import train_test_split
 
-from ModelGen import Generate_Model_1
+from ModelGen import Generate_Model_1, Generate_Model_2
 
 #10 output classes nums 0-9
 num_classes = 10
@@ -19,9 +19,9 @@ num_classes = 10
 input_shape = (28, 28, 1)
 
 #model parameters
-batch_size = 128
-learning_rate = 0.001
-epochs = 20
+batch_size = 32
+learning_rate = 0.0005
+epochs = 100
 
 
 
@@ -51,13 +51,31 @@ x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_siz
 
 
 
+
+
 #build the model
-model = Generate_Model_1(num_classes, input_shape)
+model = Generate_Model_2(num_classes, input_shape)
 
 print(model.summary())
 
 
 
+
+class checkpoint(keras.callbacks.Callback):
+
+    def __init__(self):
+        self.min_loss = 1000000
+        self.min_weight = None
+
+    def on_epoch_end(self, epoch, logs=None):
+        if logs["val_loss"] < self.min_loss:
+            print("\nValidation loss improved saving weights\n")
+            self.min_loss = logs["val_loss"]
+            self.min_weight = model.get_weights()
+
+    def on_train_end(self, logs=None):
+        print("\nSetting new model weights.\n")
+        model.set_weights(self.min_weight)
 
 
 
@@ -76,7 +94,8 @@ model.fit(x_train, y_train,
               batch_size=batch_size,
               epochs=epochs,
               validation_data=(x_valid, y_valid),
-              shuffle=True)
+              shuffle=True,
+              callbacks=checkpoint())
 
 
 
