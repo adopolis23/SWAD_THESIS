@@ -15,6 +15,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from sklearn.model_selection import train_test_split
 
 from ModelGen import Generate_Model_1, Generate_Model_2
+from WeightAverger import AverageWeights
 
 
 
@@ -42,9 +43,9 @@ num_classes = 10
 input_shape = (28, 28, 1)
 
 #model parameters
-batch_size = 32
-learning_rate = 0.001
-epochs = 70
+batch_size = 512
+learning_rate = 0.0005
+epochs = 3
 
 #SWAD parameters
 NS = 3 #optimum patience
@@ -72,7 +73,7 @@ x_test = x_test.astype("float32") / 255
 
 
 #create the velidation data
-x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.1, random_state=0, stratify=y_train)
+x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.01, random_state=0, stratify=y_train)
 
 
 #returns the validation loss of the model
@@ -108,6 +109,7 @@ class LearningRateScheduler(keras.callbacks.Callback):
 #model definition in modelGen file
 model = Generate_Model_2(num_classes, input_shape)
 print(model.summary())
+
 
 
 
@@ -161,7 +163,7 @@ class swad_callback(keras.callbacks.Callback):
 
         #list to track loss over training
         self.loss_tracker = []
-        self.epoch_tracker = 1
+        self.iteration_tracker = 0
 
 
     #function called at the end of every batch
@@ -173,9 +175,12 @@ class swad_callback(keras.callbacks.Callback):
 
         #save loss and weights for this batch
         self.loss_tracker.append(val_loss)
-        weights.append(model.get_weights())
 
-        self.epoch_tracker += 1
+
+        #weights.append(model.get_weights())
+        model.save_weights("Weights/weights_" + str(self.iteration_tracker) + ".h5")
+
+        self.iteration_tracker += 1
 
 
 
@@ -186,8 +191,8 @@ class swad_callback(keras.callbacks.Callback):
         print("\nEnd of Training")
 
         #optional plot the loss
-        #plt.plot(self.loss_tracker)
-        #plt.show()
+        plt.plot(self.loss_tracker)
+        plt.show()
 
         #finds the start and end iteration to average weights
         ts, te, l = findStartAndEnd(self.loss_tracker)
@@ -198,25 +203,29 @@ class swad_callback(keras.callbacks.Callback):
         #df = pd.DataFrame(self.loss_tracker)
         #df.to_csv('loss.csv') 
 
-        #find the weights that are between ts and te and save them in pruned_weights
-        pruned_weights = []
-        for i in range(len(weights)):
-            if i >= ts and i <= te:
-                pruned_weights.append(weights[i])
-
-
         print("\nAveraging Weights.")
+
+        ts = int(input("TS:"))
+        te = int(input("TE:"))
+
+        new_weights = AverageWeights(model, ts, te, 100)
+
+
+
+        '''
         #average up all saved weights and store them in new_weights
         #NOTE Weight averaging!
         for weights_list_tuple in zip(*pruned_weights): 
             new_weights.append(
                 np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
             )
-        
+        '''
+
         #set model weights to new average
         if len(new_weights) > 0:
             print("\nSetting new model weights.\n")
             model.set_weights(new_weights)
+        
 
 
 
