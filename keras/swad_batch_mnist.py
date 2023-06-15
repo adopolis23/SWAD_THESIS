@@ -44,8 +44,8 @@ input_shape = (28, 28, 1)
 
 #model parameters
 batch_size = 512
-learning_rate = 0.0005
-epochs = 3
+learning_rate = 0.001
+epochs = 20
 
 #SWAD parameters
 NS = 3 #optimum patience

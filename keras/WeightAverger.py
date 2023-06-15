@@ -46,22 +46,23 @@ def AverageWeights(model, ts, te, max_load):
 
 
 
-    #average the remaining weights
-    weight_set.clear()
-    new_weights.clear()
-    for i in range(curr, curr+remainder):
-        model.load_weights("Weights/weights_" + str(i) + ".h5")
-        weight_set.append(model.get_weights())
-        curr += 1
+    #average the remaining weights if there are any
+    if remainder > 0:
+        weight_set.clear()
+        new_weights.clear()
+        for i in range(curr, curr+remainder):
+            model.load_weights("Weights/weights_" + str(i) + ".h5")
+            weight_set.append(model.get_weights())
+            curr += 1
 
-    for weights_list_tuple in zip(*weight_set): 
-                new_weights.append(
-                    np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
-                )
+        for weights_list_tuple in zip(*weight_set): 
+                    new_weights.append(
+                        np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+                    )
 
-    model.set_weights(new_weights)
-    model.save_weights("Weights/AvgWeight_" + str(current_averaged) + ".h5")
-    current_averaged += 1
+        model.set_weights(new_weights)
+        model.save_weights("Weights/AvgWeight_" + str(current_averaged) + ".h5")
+        current_averaged += 1
 
     print("Number of sub-averages is: {}".format(current_averaged))
 
