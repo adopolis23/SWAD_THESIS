@@ -5,10 +5,7 @@ import matplotlib.pyplot as plt
 import math
 import os
 from imutils import paths
-import cv2
-import glob
-import shutil
-import random
+
 
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -21,30 +18,22 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2
 
 
-image_size = (32, 32)
+image_size = (244, 244)
 
-input_shape = (32, 32, 3)
+input_shape = (244, 244, 3)
 
 learning_rate = 0.0005
 epochs = 10
-batch_size = 32
+batch_size = 64
 
 num_classes = 2
 
-
-if os.path.isdir('data/train/covid') is False:
-    os.makedirs('data/train/covid')
-    os.makedirs('data/train/pneumonia')
-    os.makedirs('data/valid/covid')
-    os.makedirs('data/valid/pneumonia')
-    os.makedirs('data/test/covid')
-    os.makedirs('data/test/pneumonia')
 
 
 
 train_path = "data/train"
 valid_path = "data/valid"
-test_path = "data/test"
+test_path = "data/test-seen"
 
 
 
