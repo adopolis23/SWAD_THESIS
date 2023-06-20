@@ -34,12 +34,14 @@ num_classes = 2
 train_path = "data/train"
 valid_path = "data/valid"
 test_path = "data/test-seen"
+test_path_unseen = "data/test-unseen"
 
 
 
 train_batches = ImageDataGenerator(preprocessing_function=tf.keras.applications.vgg16.preprocess_input).flow_from_directory(directory=train_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
 valid_batches = ImageDataGenerator(preprocessing_function=tf.keras.applications.vgg16.preprocess_input).flow_from_directory(directory=valid_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
 test_batches = ImageDataGenerator(preprocessing_function=tf.keras.applications.vgg16.preprocess_input).flow_from_directory(directory=test_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
+test_batches_unseen = ImageDataGenerator(preprocessing_function=tf.keras.applications.vgg16.preprocess_input).flow_from_directory(directory=test_path_unseen, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
 
 
 #build the model
@@ -90,5 +92,10 @@ model.fit(x=train_batches,
 
 #model evaluation
 scores = model.evaluate(test_batches, verbose=1)
-print('Test loss:', scores[0])
-print('Test accuracy:', scores[1])
+print('Test loss seen:', scores[0])
+print('Test accuracy seen:', scores[1])
+
+#model evaluation
+scores_unseen = model.evaluate(test_batches_unseen, verbose=1)
+print('Test loss unseen:', scores_unseen[0])
+print('Test accuracy unseen:', scores_unseen[1])

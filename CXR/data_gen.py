@@ -3,19 +3,20 @@ import shutil
 import random
 
 #covid sources are 
-#china
-#velancia
-#grenada
+#china = 393
+#velancia = 377
+#grenada = 424
 
 covid_sources = ["china", "velancia", "granada"]
-unseen_covid = []
+unseen_covid = ["velancia"]
 
 #pneumonia sources are
-#padchest
-#NIH
-#chexpert
+#padchest = 289
+#NIH = 271
+#chexpert = 32
 
 pneumonia_sources = ["padchest", "NIH", "chexpert"]
+unseen_pnuemonia = ["NIH"]
 
 test_split = 0.1
 val_split = 0.1
@@ -44,6 +45,8 @@ test_unseen_path = "data/test-unseen"
 
 #split and move all covid sources
 for source in covid_sources:
+    if source in unseen_covid:
+        continue
 
     print("Moving from source: {}".format(source))
 
@@ -70,6 +73,8 @@ for source in covid_sources:
 
 #split and move all pneumonia sources
 for source in pneumonia_sources:
+    if source in unseen_pnuemonia:
+        continue
 
     print("Moving from source: {}".format(source))
 
@@ -93,3 +98,21 @@ for source in pneumonia_sources:
         file = random.choice(os.listdir(train_path+"/pneumonia/"))
         shutil.move(train_path+"/pneumonia/"+file, valid_path+"/pneumonia/"+file)
     
+
+
+for source in unseen_covid:
+    print("Moving from unseen source: {}".format(source))
+
+    main = os.listdir(processed_covid + "/" + source)
+
+    for file in main:
+        shutil.copyfile(processed_covid + "/" + source + "/" + file, test_unseen_path + "/covid/" + file)
+
+
+for source in unseen_pnuemonia:
+    print("Moving from unseen source: {}".format(source))
+
+    main = os.listdir(processed_pneumonia + "/" + source)
+
+    for file in main:
+        shutil.copyfile(processed_pneumonia + "/" + source + "/" + file, test_unseen_path + "/pneumonia/" + file)
