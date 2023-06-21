@@ -100,6 +100,12 @@ for source in pneumonia_sources:
     
 
 
+
+
+
+
+
+#add the unseen sources
 for source in unseen_covid:
     print("Moving from unseen source: {}".format(source))
 

@@ -1,122 +1,70 @@
-from keras.datasets import mnist
-from tensorflow import keras
-from tensorflow.keras import layers
-
 import tensorflow as tf
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+import os
+from imutils import paths
+
+
+from tensorflow import keras
+from tensorflow.keras import layers
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNormalization
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-from sklearn.model_selection import train_test_split
-
-from ModelGen import Generate_Model_1, Generate_Model_2
+from ModelGen import Generate_Model_2
 from WeightAverger import AverageWeights
 
 
+image_size = (244, 244)
+
+input_shape = (244, 244, 3)
+
+learning_rate = 0.0009
+epochs = 60
+batch_size = 64
+
+num_classes = 2
 
 
-'''
-SWAD is a continuation of SWA where weights are averaged much more
-frequently than in vanilla SWA. Weights are saved after every iteration. 
-
-These saved weights are then averaged together then the weights in the 
-model are updated with this new average. 
-
-TODO:
-Refactor the validation loss function. 
+NS = 3
+NE = 3
+r = 1.2
 
 
-Brandon Weinhofer
-U16425289
-weinhofer@usf.edu
-'''
-
-
-#10 output classes nums 0-9
-num_classes = 10
-
-#28 x 28 greyscale images
-input_shape = (28, 28, 1)
-
-#model parameters
-batch_size = 512
-learning_rate = 0.001
-epochs = 20
-
-#SWAD parameters
-NS = 3 #optimum patience
-NE = 6 #overfit patience
-r = 1.3 #tolerance ratio
+train_path = "data/train"
+valid_path = "data/valid"
+test_path = "data/test-seen"
+test_path_unseen = "data/test-unseen"
 
 
 
-
-#download data
-(x_train, y_train),(x_test, y_test) = mnist.load_data()
-
-y_train = keras.utils.to_categorical(y_train, num_classes)
-y_test = keras.utils.to_categorical(y_test, num_classes)
-
-print("x_train.shape = ", x_train.shape)
-print("y_train.shape = ", y_train.shape)
-print("x_test.shape = ", x_test.shape)
-print("y_test.shape = ", y_test.shape)
-
-
-#normalize images to 0 - 1 range
-x_train = x_train.astype("float32") / 255
-x_test = x_test.astype("float32") / 255
-
-
-#create the velidation data
-x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.01, random_state=0, stratify=y_train)
-
-
-#returns the validation loss of the model
-def validate():
-    return model.evaluate(x_valid, y_valid, verbose=0)
-
-
-#learning rate scheudle - constant
-def constant_lr_schedule():
-    return learning_rate
-
-    
-#call back class for the learning rate schedule 
-class LearningRateScheduler(keras.callbacks.Callback):
-
-    def __init__(self, schedule):
-        super().__init__()
-        self.schedule = schedule
-    
-    def on_epoch_begin(self, epoch, logs=None):
-        if not hasattr(self.model.optimizer, "lr"):
-            raise ValueError('Optimizer must have a "lr" attribute.')
-
-        scheduled_lr = self.schedule()
-        tf.keras.backend.set_value(self.model.optimizer.lr, scheduled_lr)
-        print("\nEpoch {}: Learning rate is {}.".format(epoch, scheduled_lr))
-
-
-
+train_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=train_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
+valid_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=valid_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
+test_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=test_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
+test_batches_unseen = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=test_path_unseen, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
 
 
 #build the model
-#model definition in modelGen file
 model = Generate_Model_2(num_classes, input_shape)
+
 print(model.summary())
 
 
 
 
 
+#returns the validation loss of the model
+def validate():
+    return model.evaluate(valid_batches, verbose=0)
 
-#algorithm to find start and end iteration for averaging from section B.4 in paper
+
+
+
+
 def findStartAndEnd(val_loss):
     ts = 0
     te = len(val_loss)
@@ -152,7 +100,6 @@ def findStartAndEnd(val_loss):
 
 
 
-
 weights = []
 new_weights = list()
 
@@ -172,10 +119,13 @@ class swad_callback(keras.callbacks.Callback):
 
         #finds the validation loss after this batch
         #this is very slow and this is why this takes a while
+
         val_loss = validate()[0]
 
+
         #save loss and weights for this batch
-        self.loss_tracker.append(val_loss)
+        if val_loss <= 2.0:
+            self.loss_tracker.append(val_loss)
 
 
         #weights.append(model.get_weights())
@@ -231,7 +181,6 @@ class swad_callback(keras.callbacks.Callback):
 
 
 
-
 #SGD optimizer with learning rate and 0.9 momentum
 opt = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9) 
 
@@ -243,17 +192,21 @@ model.compile(loss="categorical_crossentropy",
 
 
 #train the model
-model.fit(x_train, y_train,
+model.fit(x=train_batches,
               batch_size=batch_size,
               epochs=epochs,
-              validation_data=(x_valid, y_valid),
+              validation_data=valid_batches,
               shuffle=True,
-              callbacks=[swad_callback(),
-                        LearningRateScheduler(constant_lr_schedule)])
+              callbacks=swad_callback())
 
 
 
 #model evaluation
-scores = model.evaluate(x_test, y_test, verbose=1)
-print('\nTest loss:', scores[0])
-print('Test accuracy:', scores[1])
+scores = model.evaluate(test_batches, verbose=1)
+print('Test loss seen:', scores[0])
+print('Test accuracy seen:', scores[1])
+
+#model evaluation
+scores_unseen = model.evaluate(test_batches_unseen, verbose=1)
+print('Test loss unseen:', scores_unseen[0])
+print('Test accuracy unseen:', scores_unseen[1])
