@@ -24,11 +24,12 @@ image_size = (244, 244)
 input_shape = (244, 244, 3)
 
 learning_rate = 0.0001
-epochs = 40
+epochs = 2
 batch_size = 16
 
 num_classes = 2
 
+n_models = 2
 
 NS = 3
 NE = 3
@@ -40,12 +41,14 @@ valid_path = "data/valid"
 test_path = "data/test-seen"
 test_path_unseen = "data/test-unseen"
 
+num_test_seen = len(os.listdir(test_path+"/covid"))*2
+num_test_unseen = len(os.listdir(test_path_unseen+"/covid"))*2
 
 
 train_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=train_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
 valid_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=valid_path, target_size=image_size,classes=['covid', 'pneumonia'], batch_size=batch_size)
-test_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=test_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
-test_batches_unseen = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=test_path_unseen, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
+test_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=test_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=num_test_seen)
+test_batches_unseen = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=test_path_unseen, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=num_test_unseen)
 
 
 print(tf.config.list_physical_devices())
@@ -102,82 +105,33 @@ def findStartAndEnd(val_loss):
 
 
 
-
 weights = []
+loss = []
 new_weights = list()
 
 
 #create callback for weight averaging
-class swad_callback(keras.callbacks.Callback):
+class weight_saver_callback(keras.callbacks.Callback):
 
     def __init__(self):
 
         #list to track loss over training
         self.loss_tracker = []
-        self.iteration_tracker = 0
 
+        self.epoch_tracker = 0
 
 
     #function called at the end of every batch
-    def on_train_batch_end(self, batch, logs=None):
+    def on_epoch_end(self, epoch, logs=None):
 
-        #finds the validation loss after this batch
-        #this is very slow and this is why this takes a while
-
-        val_loss = validate()[0]
-
+        print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["val_loss"]))
 
         #save loss and weights for this batch
-        if val_loss <= 2.0:
-            self.loss_tracker.append(val_loss)
+        self.loss_tracker.append(logs["val_loss"])
+        loss.append(logs["val_loss"])
+        weights.append(model.get_weights())
 
-
-        #weights.append(model.get_weights())
-        model.save_weights("Weights/weights_" + str(self.iteration_tracker) + ".h5")
-
-        self.iteration_tracker += 1
-
-
-    #function called at the end of training
-    #NOTE WEIGHT AVERAGING HAPPENS HERE
-    def on_train_end(self, logs=None):
-        print("\nEnd of Training")
-
-        #optional plot the loss
-        plt.plot(self.loss_tracker)
-        plt.show()
-
-        #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd(self.loss_tracker)
-        print("ts is {} and te is {} and l is {}".format(ts, te, l))
-
-
-        #optional save loss to csv
-        #df = pd.DataFrame(self.loss_tracker)
-        #df.to_csv('loss.csv') 
-
-        print("\nAveraging Weights.")
-
-        ts = int(input("TS:"))
-        te = int(input("TE:"))
-
-        new_weights = AverageWeights(model, ts, te, 100)
-
-
-
-        '''
-        #average up all saved weights and store them in new_weights
-        #NOTE Weight averaging!
-        for weights_list_tuple in zip(*pruned_weights): 
-            new_weights.append(
-                np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
-            )
-        '''
-
-        #set model weights to new average
-        if len(new_weights) > 0:
-            print("\nSetting new model weights.\n")
-            model.set_weights(new_weights)
+        self.epoch_tracker += 1
         
 
 
@@ -199,9 +153,73 @@ model.fit(x=train_batches,
               epochs=epochs,
               validation_data=valid_batches,
               shuffle=True,
-              callbacks=swad_callback())
+              callbacks=weight_saver_callback())
 
 
+
+#finds the index of an array that has the minimum value
+def findMinIndex(arr):
+    minVal = math.inf
+    minIndex = 0
+
+    for i in range(len(arr)):
+        if arr[i] < minVal:
+            minVal = arr[i]
+            minIndex = i
+    
+    return minIndex
+
+
+
+models = list()
+
+
+print("Creating Ensemble...")
+for i in range(n_models):
+
+
+    #retrieve that weight and remove from lsit of weights
+    curr_weight = weights[i]
+
+    #remove loss from loss list
+
+    #create model with those weights
+    model = Generate_Model_2(num_classes, input_shape)
+
+    model.compile(loss="categorical_crossentropy",
+              optimizer=opt,
+              metrics=['accuracy'])
+
+    model.set_weights(curr_weight)
+
+    #add model to list of models
+    models.append(model)
+
+
+
+
+
+def evaluate_models(model_list, x_test_seen, y_test_seen):
+
+    total_examples = len(y_test_seen)
+    total_correct = 0
+
+    model_outputs = []
+
+    for model in model_list:
+        output = model.predict(x_test_seen, verbose=1)
+        model_outputs.append(output)
+    
+    for i in range(total_examples):
+        print(model_outputs[0][i])
+        
+
+
+x_test_seen, y_test_seen = test_batches.next()
+x_test_unseen, y_test_unseen = test_batches.next()
+evaluate_models(models, x_test_seen, y_test_seen)
+
+'''
 print("\nSWAD results")
 
 #model evaluation
@@ -213,3 +231,4 @@ print('Test accuracy seen:', scores[1])
 scores_unseen = model.evaluate(test_batches_unseen, verbose=1)
 print('Test loss unseen:', scores_unseen[0])
 print('Test accuracy unseen:', scores_unseen[1])
+'''

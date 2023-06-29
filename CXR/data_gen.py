@@ -6,8 +6,10 @@ import random
 #china = 393
 #velancia = 377
 #grenada = 424
+#tcia = 16
+#germany 135
 
-covid_sources = ["china", "velancia", "granada"]
+covid_sources = ["china", "velancia", "granada", "tcia", "germany"]
 unseen_covid = ["velancia"]
 
 #pneumonia sources are
@@ -41,7 +43,7 @@ test_seen_path = "data/test-seen"
 test_unseen_path = "data/test-unseen"
 
 
-
+'''
 
 #split and move all covid sources
 for source in covid_sources:
@@ -122,3 +124,24 @@ for source in unseen_pnuemonia:
 
     for file in main:
         shutil.copyfile(processed_pneumonia + "/" + source + "/" + file, test_unseen_path + "/pneumonia/" + file)
+
+
+'''
+
+
+
+
+
+#balance train folder
+for f in [['data/train/covid', 'data/train/pneumonia'], ['data/valid/covid', 'data/valid/pneumonia'], ['data/test-seen/covid', 'data/test-seen/pneumonia'], ['data/test-unseen/covid', 'data/test-unseen/pneumonia']]:
+
+    t_covid = os.listdir(f[0])
+    t_pneumonia = os.listdir(f[1])
+
+    if len(t_covid) > len(t_pneumonia):
+        diff = len(t_covid) - len(t_pneumonia)
+
+        for i in range(diff):
+            file = random.choice(os.listdir(f[0]))
+            os.remove(f[0]+"/"+file)
+
