@@ -24,12 +24,12 @@ image_size = (244, 244)
 input_shape = (244, 244, 3)
 
 learning_rate = 0.0001
-epochs = 2
-batch_size = 16
+epochs = 10
+batch_size = 32
 
 num_classes = 2
 
-n_models = 2
+n_models = 5
 
 NS = 3
 NE = 3
@@ -123,13 +123,14 @@ class weight_saver_callback(keras.callbacks.Callback):
 
     #function called at the end of every batch
     def on_epoch_end(self, epoch, logs=None):
-
-        print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["val_loss"]))
-
+        
         #save loss and weights for this batch
         self.loss_tracker.append(logs["val_loss"])
         loss.append(logs["val_loss"])
-        weights.append(model.get_weights())
+
+        if epoch >= 5:
+            print("\nSaving weights from epoch {} with loss {}".format(epoch, logs["val_loss"]))
+            weights.append(model.get_weights())
 
         self.epoch_tracker += 1
         
@@ -199,36 +200,43 @@ for i in range(n_models):
 
 
 
-def evaluate_models(model_list, x_test_seen, y_test_seen):
+def evaluate_models(model_list, x_test, y_test):
 
-    total_examples = len(y_test_seen)
+    total_examples = len(y_test)
     total_correct = 0
 
     model_outputs = []
 
     for model in model_list:
-        output = model.predict(x_test_seen, verbose=1)
+        output = model.predict(x_test, verbose=1)
         model_outputs.append(output)
     
     for i in range(total_examples):
-        print(model_outputs[0][i])
+        votes = np.zeros(num_classes)
+
+        for output_frame in model_outputs:
+            vote = np.argmax(output_frame[i])
+            votes[vote] += 1
         
+        if np.argmax(y_test[i]) == np.argmax(votes):
+            total_correct += 1
+    
+    return float(total_correct/total_examples)
 
 
 x_test_seen, y_test_seen = test_batches.next()
-x_test_unseen, y_test_unseen = test_batches.next()
-evaluate_models(models, x_test_seen, y_test_seen)
+x_test_unseen, y_test_unseen = test_batches_unseen.next()
 
-'''
-print("\nSWAD results")
+#accuracy = evaluate_models(models, x_test_seen, y_test_seen)
 
-#model evaluation
-scores = model.evaluate(test_batches, verbose=1)
-print('Test loss seen:', scores[0])
-print('Test accuracy seen:', scores[1])
+
+print("\nEnsemble results")
 
 #model evaluation
-scores_unseen = model.evaluate(test_batches_unseen, verbose=1)
-print('Test loss unseen:', scores_unseen[0])
-print('Test accuracy unseen:', scores_unseen[1])
-'''
+scores = evaluate_models(models, x_test_seen, y_test_seen)
+#print('Test loss seen:', scores[0])
+print('Test accuracy seen:', scores)
+
+#model evaluation
+scores_unseen =evaluate_models(models, x_test_unseen, y_test_unseen)
+print('Test accuracy unseen:', scores_unseen)
