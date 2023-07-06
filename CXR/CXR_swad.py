@@ -1,10 +1,13 @@
 import tensorflow as tf
-import numpy as np
-import pandas as pd
+#import numpy as np
+#import pandas as pd
 import matplotlib.pyplot as plt
 import math
 import os
-from imutils import paths
+from tensorflow.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
+from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
+#from imutils import paths
 
 
 from tensorflow import keras
@@ -15,7 +18,7 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-from ModelGen import Generate_Model_2
+from ModelGen import Generate_Model_2,LeNet5
 from WeightAverger import AverageWeights
 
 
@@ -24,7 +27,7 @@ image_size = (244, 244)
 input_shape = (244, 244, 3)
 
 learning_rate = 0.0001
-epochs = 40
+epochs = 2
 batch_size = 16
 
 num_classes = 2
@@ -40,10 +43,10 @@ valid_path = "data/valid"
 test_path = "data/test-seen"
 test_path_unseen = "data/test-unseen"
 
-
+num_val = len(os.listdir(valid_path+"/covid"))*2
 
 train_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=train_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
-valid_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=valid_path, target_size=image_size,classes=['covid', 'pneumonia'], batch_size=batch_size)
+valid_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=valid_path, target_size=image_size,classes=['covid', 'pneumonia'], batch_size=num_val)
 test_batches = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=test_path, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
 test_batches_unseen = ImageDataGenerator(preprocessing_function=None).flow_from_directory(directory=test_path_unseen, target_size=image_size, classes=['covid', 'pneumonia'], batch_size=batch_size)
 
@@ -52,7 +55,8 @@ print(tf.config.list_physical_devices())
 
 
 #build the model
-model = Generate_Model_2(num_classes, input_shape)
+#model = Generate_Model_2(input_shape=input_shape, num_classes=num_classes)
+model = DenseNet121(input_shape=input_shape, classes=num_classes, weights=None)
 
 print(model.summary())
 
@@ -62,9 +66,16 @@ print(model.summary())
 
 #returns the validation loss of the model
 def validate():
-    return model.evaluate(valid_batches, verbose=0)
+    return model.evaluate(valid_batches, verbose=0)[0]
 
 
+def validate2():
+    x_valid, y_valid = valid_batches.next()
+
+    y_pred = model.predict(x_valid, verbose=0)
+    cce = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
+    val_loss = cce(y_valid, y_pred).numpy()
+    return val_loss
 
 
 
@@ -115,6 +126,7 @@ class swad_callback(keras.callbacks.Callback):
         #list to track loss over training
         self.loss_tracker = []
         self.iteration_tracker = 0
+        self.weights_saved = 0
 
 
 
@@ -124,16 +136,17 @@ class swad_callback(keras.callbacks.Callback):
         #finds the validation loss after this batch
         #this is very slow and this is why this takes a while
 
-        val_loss = validate()[0]
+        if self.iteration_tracker >= 0:
+            val_loss = validate2()
 
 
-        #save loss and weights for this batch
-        if val_loss <= 2.0:
+            #save loss and weights for this batch
             self.loss_tracker.append(val_loss)
 
 
-        #weights.append(model.get_weights())
-        model.save_weights("Weights/weights_" + str(self.iteration_tracker) + ".h5")
+            #weights.append(model.get_weights())
+            model.save_weights("Weights/weights_" + str(self.weights_saved) + ".h5")
+            self.weights_saved += 1
 
         self.iteration_tracker += 1
 
@@ -168,7 +181,7 @@ class swad_callback(keras.callbacks.Callback):
         '''
         #average up all saved weights and store them in new_weights
         #NOTE Weight averaging!
-        for weights_list_tuple in zip(*pruned_weights): 
+        for weights_list_tuple in zip(*saved_weights): 
             new_weights.append(
                 np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
             )

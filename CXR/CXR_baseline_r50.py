@@ -1,12 +1,13 @@
 import tensorflow as tf
-#import numpy as np
-#import pandas as pd
-#import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 import math
 import os
-#from imutils import paths
+import random as rn 
+from imutils import paths
+from tensorflow.keras.applications.resnet50 import ResNet50
 
-from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -24,8 +25,8 @@ image_size = (244, 244)
 input_shape = (244, 244, 3)
 
 learning_rate = 0.0009
-epochs = 66
-batch_size = 16
+epochs = 1
+batch_size = 32
 
 num_classes = 2
 
@@ -45,13 +46,35 @@ test_batches_unseen = ImageDataGenerator(preprocessing_function=None).flow_from_
 
 
 #build the model
-#model = Generate_Model_2(num_classes, input_shape)
-model = DenseNet121(input_shape=input_shape, classes=num_classes, weights=None)
+#model = ResNet50(input_shape=input_shape, classes=num_classes, weights=None)
+model = Generate_Model_2(num_classes, input_shape)
 
 print(model.summary())
 
 
 
+#set the random seed for deterministic action
+def set_seeds(seed=2023):
+    np.random.seed(seed)
+    rn.seed(seed)
+
+    session_conf = tf.compat.v1.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+
+    #session_conf.gpu_options.visible_device_list = gpu
+
+    os.environ['TF_DETERMINISTIC_OPS'] = 'true'
+    os.environ['TF_CUDNN_DETERMINISTIC'] = 'true'
+
+    from keras import backend as K
+    K.set_image_data_format('channels_first')
+    tf.random.set_seed(seed)
+
+    sess = tf.compat.v1.Session(graph=tf.compat.v1.get_default_graph(), config=session_conf)
+    tf.compat.v1.keras.backend.set_session(sess)
+    return sess
+
+
+set_seeds()
 
 class checkpoint(keras.callbacks.Callback):
 
@@ -72,7 +95,7 @@ class checkpoint(keras.callbacks.Callback):
 
 
 #SGD optimizer with learning rate and 0.9 momentum
-opt = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9) 
+opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
 
 #compile model with accuracy metric
 model.compile(loss="categorical_crossentropy",
