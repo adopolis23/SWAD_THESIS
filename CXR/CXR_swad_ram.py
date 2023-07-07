@@ -1,6 +1,7 @@
 import tensorflow as tf
 import os
 import cv2
+import gc
 import math
 import numpy as np
 from tensorflow import keras
@@ -25,7 +26,7 @@ test_path_unseen = "data/test-unseen"
 image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.0009
-epochs = 10
+epochs = 60
 batch_size = 16
 num_classes = 2
 NS = 3
@@ -222,6 +223,8 @@ class swad_callback(keras.callbacks.Callback):
         self.iteration_tracker = 0
         self.weights_saved = 0
 
+    def on_epoch_end(self, epoch, logs=None):
+        gc.collect()
 
 
     #function called at the end of every batch
@@ -311,3 +314,13 @@ model.fit(x=np.array(train_x, np.float32),
               shuffle=True,
               callbacks=swad_callback())
 
+
+#model evaluation
+scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)
+print('Test loss seen:', scores[0])
+print('Test accuracy seen:', scores[1])
+
+#model evaluation
+scores_unseen = model.evaluate(test_unseen_x, test_unseen_y, verbose=1)
+print('Test loss unseen:', scores_unseen[0])
+print('Test accuracy unseen:', scores_unseen[1])
