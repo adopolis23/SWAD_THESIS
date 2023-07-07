@@ -1,5 +1,5 @@
 import tensorflow as tf
-#import numpy as np
+import numpy as np
 #import pandas as pd
 import matplotlib.pyplot as plt
 import math
@@ -61,7 +61,29 @@ model = DenseNet121(input_shape=input_shape, classes=num_classes, weights=None)
 print(model.summary())
 
 
+def addWeights(w1, w2):
+    tmp = [w1, w2]
+    new = list()
+    for wt in zip(*tmp):
+        new.append(
+            np.array([np.array(w).sum(axis=0) for w in zip(*wt)])
+        )
+    return new
 
+def divideBy(w1, n):
+    sol = list()
+    
+    for x in w1:
+        if len(x.shape) == 2:
+            sol.append(
+                np.array([[y/n for y in z] for z in x])
+            )
+        if len(x.shape) == 1:
+            sol.append(
+                np.array([z/n for z in x])
+            )
+    
+    return sol
 
 
 #returns the validation loss of the model
@@ -128,26 +150,21 @@ class swad_callback(keras.callbacks.Callback):
         self.iteration_tracker = 0
         self.weights_saved = 0
 
+        self.accumulated_weight = list()
+
 
 
     #function called at the end of every batch
     def on_train_batch_end(self, batch, logs=None):
+        val_loss = validate()
 
-        #finds the validation loss after this batch
-        #this is very slow and this is why this takes a while
+        if self.iteration_tracker == 0:
+            self.accumulated_weight = model.get_weights()
+        else:
+            self.accumulated_weight = addWeights(self.accumulated_weight, model.get_weights())
+            
 
-        if self.iteration_tracker >= 0:
-            val_loss = validate()
-
-
-            #save loss and weights for this batch
-            self.loss_tracker.append(val_loss)
-
-
-            #weights.append(model.get_weights())
-            model.save_weights("Weights/weights_" + str(self.weights_saved) + ".h5")
-            self.weights_saved += 1
-
+        self.loss_tracker.append(val_loss)
         self.iteration_tracker += 1
 
 
