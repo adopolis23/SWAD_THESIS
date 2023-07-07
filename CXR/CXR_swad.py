@@ -56,8 +56,8 @@ print(tf.config.list_physical_devices())
 
 
 #build the model
-#model = Generate_Model_2(input_shape=input_shape, num_classes=num_classes)
-model = DenseNet121(input_shape=input_shape, classes=num_classes, weights=None)
+model = Generate_Model_2(input_shape=input_shape, num_classes=num_classes)
+#model = DenseNet121(input_shape=input_shape, classes=num_classes, weights=None)
 
 print(model.summary())
 

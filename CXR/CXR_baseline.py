@@ -45,8 +45,8 @@ test_batches_unseen = ImageDataGenerator(preprocessing_function=None).flow_from_
 
 
 #build the model
-#model = Generate_Model_2(num_classes, input_shape)
-model = DenseNet121(input_shape=input_shape, classes=num_classes, weights=None)
+model = Generate_Model_2(num_classes, input_shape)
+#model = DenseNet121(input_shape=input_shape, classes=num_classes, weights=None)
 
 print(model.summary())
 
@@ -72,10 +72,10 @@ class checkpoint(keras.callbacks.Callback):
 
 
 #SGD optimizer with learning rate and 0.9 momentum
-opt = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9) 
+opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
 
 #compile model with accuracy metric
-model.compile(loss="categorical_crossentropy",
+model.compile(loss="binary_crossentropy",
               optimizer=opt,
               metrics=['accuracy'])
 
