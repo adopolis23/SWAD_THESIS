@@ -21,13 +21,14 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2,LeNet5
 from WeightAverger import AverageWeights
 
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 image_size = (244, 244)
 
 input_shape = (244, 244, 3)
 
 learning_rate = 0.0001
-epochs = 66
+epochs = 60
 batch_size = 16
 
 num_classes = 2

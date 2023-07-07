@@ -158,11 +158,22 @@ class swad_callback(keras.callbacks.Callback):
     def on_train_batch_end(self, batch, logs=None):
         val_loss = validate()
 
+        '''
         if self.iteration_tracker == 0:
             self.accumulated_weight = model.get_weights()
         else:
             self.accumulated_weight = addWeights(self.accumulated_weight, model.get_weights())
+        '''
+
+        if self.iteration_tracker > NS:
+
+            self.ts = 0
+            self.te = epochs*17
+            self.l = None
+
             
+
+
 
         self.loss_tracker.append(val_loss)
         self.iteration_tracker += 1
