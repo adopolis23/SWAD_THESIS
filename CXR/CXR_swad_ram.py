@@ -2,6 +2,7 @@ import tensorflow as tf
 import os
 import cv2
 import gc
+import pandas as pd
 import math
 import numpy as np
 from tensorflow import keras
@@ -10,7 +11,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNormalization
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from ModelGen import Generate_Model_2
+from ModelGen import Generate_Model_2, LeNet
 from WeightAverger import AverageWeights
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
@@ -25,8 +26,9 @@ test_path_unseen = "data/test-unseen"
 
 image_size = (244, 244)
 image_shape = (244, 244, 3)
-learning_rate = 0.0009
-epochs = 60
+learning_rate = 0.0005
+
+epochs = 30
 batch_size = 16
 num_classes = 2
 NS = 3
@@ -126,7 +128,7 @@ test_seen_y = np.asarray(test_seen_y).reshape(-1, 2)
 test_seen_x = np.asarray(test_seen_x)
 # ----------------
 
-# LOAD TEST-SEEN DATA
+# LOAD TEST-UNSEEN DATA
 for file in os.listdir(test_path_unseen + "/covid"):
     
     image = cv2.imread(test_path_unseen + "/covid/" + file)
@@ -209,12 +211,31 @@ def findStartAndEnd(val_loss):
 
 
 
+
+class checkpoint(tf.keras.callbacks.Callback):
+
+    def __init__(self):
+        self.min_loss = 1000000
+        self.min_weight = None
+
+    def on_epoch_end(self, epoch, logs=None):
+        if logs["val_loss"] < self.min_loss:
+            print("\nValidation loss improved saving weights\n")
+            self.min_loss = logs["val_loss"]
+            self.min_weight = model.get_weights()
+
+    def on_train_end(self, logs=None):
+        print("\nSetting new model weights.\n")
+        model.set_weights(self.min_weight)
+
+
+
 weights = []
 new_weights = list()
 
 
 #create callback for weight averaging
-class swad_callback(keras.callbacks.Callback):
+class swad_callback(tf.keras.callbacks.Callback):
 
     def __init__(self):
 
@@ -263,15 +284,15 @@ class swad_callback(keras.callbacks.Callback):
 
 
         #optional save loss to csv
-        #df = pd.DataFrame(self.loss_tracker)
-        #df.to_csv('loss.csv') 
+        df = pd.DataFrame(self.loss_tracker)
+        df.to_csv('loss.csv') 
 
         print("\nAveraging Weights.")
 
         ts = int(input("TS:"))
         te = int(input("TE:"))
 
-        new_weights = AverageWeights(model, ts, te, 100)
+        new_weights = AverageWeights(model, ts, te, 200)
 
 
 
@@ -299,7 +320,7 @@ class swad_callback(keras.callbacks.Callback):
 opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
 
 #compile model with accuracy metric
-model.compile(loss="binary_crossentropy",
+model.compile(loss="categorical_crossentropy",
               optimizer=opt,
               metrics=['accuracy'])
 
@@ -312,8 +333,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=swad_callback())
-
+              callbacks=checkpoint())
 
 #model evaluation
 scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)

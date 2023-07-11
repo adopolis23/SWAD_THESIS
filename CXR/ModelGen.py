@@ -72,15 +72,15 @@ def Generate_Model_2(num_classes, input_shape):
 
 
 #LeNet5 model - found several definitions of this online this might not be the most accurate
-def LeNet5(input_shape, num_classes):
+def LeNet(num_classes, input_shape):
     model = Sequential()
-    model.add(Conv2D(filters=32, kernel_size=(5,5), padding='same', activation='relu', input_shape=input_shape))
-    model.add(MaxPool2D(strides=2))
-    model.add(Conv2D(filters=48, kernel_size=(5,5), padding='valid', activation='relu'))
-    model.add(MaxPool2D(strides=2))
+    model.add(Conv2D(filters=6, kernel_size=(5,5), strides=(1, 1), padding='same', activation='tanh', input_shape=input_shape))
+    model.add(AveragePooling2D(pool_size=(2, 2), strides=(1, 1), padding='valid'))
+    model.add(Conv2D(16, kernel_size=(5, 5), strides=(1, 1), activation='tanh', padding='valid'))
+    model.add(AveragePooling2D(pool_size=(2, 2), strides=(2, 2), padding='valid'))
+    model.add(Conv2D(120, kernel_size=(5, 5), strides=(1, 1), activation='tanh', padding='valid'))
     model.add(Flatten())
-    model.add(Dense(256, activation='relu'))
-    model.add(Dense(84, activation='relu'))
+    #model.add(Dense(32, activation='tanh'))
     model.add(Dense(num_classes, activation='softmax'))
 
     return model

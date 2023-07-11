@@ -23,8 +23,8 @@ image_size = (244, 244)
 
 input_shape = (244, 244, 3)
 
-learning_rate = 0.0009
-epochs = 66
+learning_rate = 0.0001
+epochs = 60
 batch_size = 16
 
 num_classes = 2

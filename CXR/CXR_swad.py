@@ -18,7 +18,7 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-from ModelGen import Generate_Model_2,LeNet5
+from ModelGen import Generate_Model_2,LeNet
 from WeightAverger import AverageWeights
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
@@ -201,7 +201,7 @@ class swad_callback(keras.callbacks.Callback):
 opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
 
 #compile model with accuracy metric
-model.compile(loss="binary_crossentropy",
+model.compile(loss="categorical_crossentropy",
               optimizer=opt,
               metrics=['accuracy'])
 
