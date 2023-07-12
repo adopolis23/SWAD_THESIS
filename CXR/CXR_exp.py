@@ -26,9 +26,12 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.0002
 
-epochs = 1
+epochs = 10
 batch_size = 16
 num_classes = 2
+
+
+#swad parameters
 NS = 3
 NE = 3
 r = 1.2
@@ -162,6 +165,25 @@ model = Generate_Model_2(num_classes, image_shape)
 print(model.summary())
 
 
+def sumPrev(array, n):
+    new = array[-n:]
+    sum_ = 0
+    for x in new:
+        sum_ = sum_ + x
+    
+    return sum_
+
+
+def minValue(array):
+    min_index = 0
+    min_val = 1000000000
+    for i, x in enumerate(array):
+        if x < min_val:
+            min_val = x
+            min_index = i
+    
+    return min_val
+
 
 def addWeights(w1, w2):
     tmp = [w1, w2]
@@ -189,20 +211,51 @@ class swad(tf.keras.callbacks.Callback):
         self.iteration_tracker = 0
         self.weights_saved = 0
 
+        self.ts = 0
+        self.te = epochs * 33
+        self.l = None
+
     def on_train_batch_end(self, batch, logs=None):
         val_loss = validate2()
         self.loss_tracker.append(val_loss)
 
 
-
+        '''
         #if its first iter then just get weights else add weights to accumulator
         if self.iteration_tracker == 0:
             self.weight = model.get_weights()
         else:
             self.weight = addWeights(self.weight, model.get_weights())
         self.weights_saved += 1
+        '''
+
+        if self.iteration_tracker > NS+1:
+            if self.l == None:
+
+                if self.loss_tracker[self.iteration_tracker-NS+1] == minValue(self.loss_tracker[-NS:]):
+                    
+                    self.ts = self.iteration_tracker - NS + 1
+                    print("\n\nStarting Weight Save TS={}".format(self.ts))
+                    print("\nCurrent iter is: {}".format(self.iteration_tracker))
+
+                    self.l = float(r/NS) * sumPrev(self.loss_tracker, (NS-1))
+                    print("\n\nL is: {}".format(self.l))
 
 
+
+            elif self.l < minValue(self.loss_tracker[-NE:]):
+                self.te = self.iteration_tracker - NE
+                self.model.stop_training = True
+                #STOP TRAINING 
+
+
+        if self.ts != 0 and self.iteration_tracker <= self.te:
+            if self.weights_saved == 0:
+                self.weight = model.get_weights()
+                self.weights_saved += 1
+            else:
+                self.weight = addWeights(self.weight, model.get_weights())
+                self.weights_saved += 1
 
 
         self.iteration_tracker += 1

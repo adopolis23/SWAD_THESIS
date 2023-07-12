@@ -15,6 +15,8 @@ from ModelGen import Generate_Model_2, LeNet
 from WeightAverger import AverageWeights
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
+from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
+from tensorflow.keras.applications.resnet50 import ResNet50
 
 
 
@@ -26,11 +28,13 @@ test_path_unseen = "data/test-unseen"
 
 image_size = (244, 244)
 image_shape = (244, 244, 3)
-learning_rate = 0.0005
+learning_rate = 0.0003
 
-epochs = 30
+epochs = 10
 batch_size = 16
 num_classes = 2
+
+#swad parameters
 NS = 3
 NE = 3
 r = 1.2
@@ -48,6 +52,26 @@ test_seen_y = []
 
 test_unseen_x = []
 test_unseen_y = []
+
+
+
+def setSeed():
+    from numpy.random import seed
+    import random as ran
+    
+    #get_ipython().run_line_magic('env', 'PYTHONHASHSEED=1')
+    ran.seed(1)
+    seed(1)
+    tf.random.set_seed(1)
+
+    session_conf = tf.compat.v1.ConfigProto()
+
+    os.environ['TF_CUDNN_DETERMINISTIC'] = 'true'
+    os.environ['TF_DETERMINISTIC_OPS'] = 'true'
+
+    #from tensorflow.keras import backend as K
+    #K.set_image_data_format('channels_first')
+setSeed()
 
 
 
@@ -160,7 +184,8 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 model = Generate_Model_2(num_classes, image_shape)
-#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+#model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
+#model = ResNet50(input_shape=image_shape, classes=num_classes, weights=None)
 print(model.summary())
 
 
