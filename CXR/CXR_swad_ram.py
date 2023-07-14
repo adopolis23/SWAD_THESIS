@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from WeightAverger import AverageWeights
+from SwadUtility import AverageWeights, findStartAndEnd
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
@@ -55,14 +55,16 @@ test_unseen_y = []
 
 
 
-def setSeed():
+def setSeed(seed):
+    newSeed = int(seed)
+
     from numpy.random import seed
     import random as ran
     
     #get_ipython().run_line_magic('env', 'PYTHONHASHSEED=1')
-    ran.seed(1)
-    seed(1)
-    tf.random.set_seed(1)
+    ran.seed(newSeed)
+    seed(newSeed)
+    tf.random.set_seed(newSeed)
 
     session_conf = tf.compat.v1.ConfigProto()
 
@@ -71,8 +73,8 @@ def setSeed():
 
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
-setSeed()
 
+setSeed(1 * 406)
 
 
 
@@ -202,38 +204,6 @@ def validate2():
     return val_loss
 
 
-def findStartAndEnd(val_loss):
-    ts = 0
-    te = len(val_loss)
-    l = None
-
-    for i in range(NS-1, len(val_loss)):
-        
-        min1 = math.inf
-        for j in range(NE):
-            if val_loss[i-j] < min1:
-                min1 = val_loss[i-j]
-        
-        if l == None:
-            
-            min = math.inf
-            for j in range(NS):
-                if val_loss[i-j] < min:
-                    min = val_loss[i-j]
-
-            if val_loss[i-NS+1] == min:
-
-                ts = i-NS+1
-                sums = 0
-                for j in range(NS):
-                    sums = sums + val_loss[i-j]
-                l = (r/NS)*sums
-        
-        elif l < min1:
-            te = i-NE
-            break
-    return ts, te, l
-
 
 
 
@@ -304,7 +274,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         plt.show()
 
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd(self.loss_tracker)
+        ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
         print("ts is {} and te is {} and l is {}".format(ts, te, l))
 
 
@@ -341,6 +311,9 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 
 
+#normal Keras stuff
+
+
 #SGD optimizer with learning rate and 0.9 momentum
 opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
 
@@ -358,7 +331,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=checkpoint())
+              callbacks=swad_callback())
 
 #model evaluation
 scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)

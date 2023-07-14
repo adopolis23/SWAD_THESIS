@@ -12,9 +12,31 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from WeightAverger import AverageWeights
+from SwadUtility import AverageWeights
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
+
+
+
+
+def setSeed(seed):
+    newSeed = int(seed)
+
+    from numpy.random import seed
+    import random as ran
+    
+    #get_ipython().run_line_magic('env', 'PYTHONHASHSEED=1')
+    ran.seed(newSeed)
+    seed(newSeed)
+    tf.random.set_seed(newSeed)
+
+    session_conf = tf.compat.v1.ConfigProto()
+
+    os.environ['TF_CUDNN_DETERMINISTIC'] = 'true'
+    os.environ['TF_DETERMINISTIC_OPS'] = 'true'
+
+    #from tensorflow.keras import backend as K
+    #K.set_image_data_format('channels_first')
 
 
 
@@ -26,12 +48,12 @@ test_path_unseen = "data/test-unseen"
 
 image_size = (244, 244)
 image_shape = (244, 244, 3)
-learning_rate = 0.0005
+learning_rate = 0.0001
 
-epochs = 2
-batch_size = 32
+epochs = 60
+batch_size = 16
 num_classes = 2
-runs = 3
+runs = 20
 results = []
 
 NS = 3
@@ -318,6 +340,10 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 for i in range(runs):
 
+    print("******* Run Number: {} *******".format(i))
+
+    setSeed((i * 406))
+
     model = None
     opt = None
 
@@ -359,8 +385,13 @@ for i in range(runs):
     print('Test loss unseen:', scores_unseen[0])
     print('Test accuracy unseen:', scores_unseen[1])
 
+    print("******* End Run Number: {} *******".format(i))
+
     results.append([scores, scores_unseen])
 
+
+df = pd.DataFrame(results)
+df.to_csv('multirun_results.csv')
 
 print("\n\n Final Results:\n")
 

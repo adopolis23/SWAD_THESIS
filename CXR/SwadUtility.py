@@ -1,6 +1,4 @@
 import numpy as np
-#from sklearn.model_selection import train_test_split
-from ModelGen import Generate_Model_1, Generate_Model_2
 
 
 
@@ -83,3 +81,61 @@ def AverageWeights(model, ts, te, max_load):
 
 
     return new_weights
+
+
+
+def findStartAndEnd(val_loss, NS, NE, r):
+    ts = 0
+    te = len(val_loss)
+    l = None
+
+    for i in range(NS-1, len(val_loss)):
+        
+        min1 = math.inf
+        for j in range(NE):
+            if val_loss[i-j] < min1:
+                min1 = val_loss[i-j]
+        
+        if l == None:
+            
+            min = math.inf
+            for j in range(NS):
+                if val_loss[i-j] < min:
+                    min = val_loss[i-j]
+
+            if val_loss[i-NS+1] == min:
+
+                ts = i-NS+1
+                sums = 0
+                for j in range(NS):
+                    sums = sums + val_loss[i-j]
+                l = (r/NS)*sums
+        
+        elif l < min1:
+            te = i-NE
+            break
+    return ts, te, l
+
+
+
+def findArrayMin(arr):
+    minIndex = 0
+    minVal = arr[minIndex]
+
+    for i, x in enumerate(arr):
+        if x < minVal:
+            minIndex = i
+            minVal = x
+    
+    return minIndex, minVal
+
+
+#updated find start and end
+def findStartAndEnd2(loss, NS, NE, r=1.0):
+    
+    minIndex, minVal = findArrayMin(loss)
+
+    left_threshold = (r / NS) * sum(loss[minIndex-NS+1:minIndex+1])
+    right_threshold = (r / NS) * sum(loss[minIndex-NS+1:minIndex+1])
+
+    pass
