@@ -28,9 +28,9 @@ test_path_unseen = "data/test-unseen"
 
 image_size = (244, 244)
 image_shape = (244, 244, 3)
-learning_rate = 0.0003
+learning_rate = 0.0001
 
-epochs = 10
+epochs = 50
 batch_size = 16
 num_classes = 2
 

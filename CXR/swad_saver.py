@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from WeightAverger import AverageWeights
+from SwadUtility import AverageWeights
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
@@ -108,8 +108,8 @@ plt.show()
 
 
 
-#model = Generate_Model_2(num_classes, image_shape)
-model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
+model = Generate_Model_2(num_classes, image_shape)
+#model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
 print(model.summary())
 
 

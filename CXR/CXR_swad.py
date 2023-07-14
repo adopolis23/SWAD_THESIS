@@ -19,7 +19,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from ModelGen import Generate_Model_2,LeNet
-from WeightAverger import AverageWeights
+from SwadUtility import AverageWeights
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
@@ -28,7 +28,7 @@ image_size = (244, 244)
 input_shape = (244, 244, 3)
 
 learning_rate = 0.0001
-epochs = 60
+epochs = 30
 batch_size = 16
 
 num_classes = 2
@@ -37,6 +37,29 @@ num_classes = 2
 NS = 3
 NE = 3
 r = 1.2
+
+
+
+def setSeed(seed):
+    newSeed = int(seed)
+
+    from numpy.random import seed
+    import random as ran
+    
+    #get_ipython().run_line_magic('env', 'PYTHONHASHSEED=1')
+    ran.seed(newSeed)
+    seed(newSeed)
+    tf.random.set_seed(newSeed)
+
+    session_conf = tf.compat.v1.ConfigProto()
+
+    os.environ['TF_CUDNN_DETERMINISTIC'] = 'true'
+    os.environ['TF_DETERMINISTIC_OPS'] = 'true'
+
+    #from tensorflow.keras import backend as K
+    #K.set_image_data_format('channels_first')
+
+setSeed(1 * 406)
 
 
 train_path = "data/train"
