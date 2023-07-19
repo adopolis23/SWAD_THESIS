@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
 
+from ModelGen import ResNet18_2
+
 test_path = "data/test-seen"
 test_path_unseen = "data/test-unseen"
 
@@ -46,7 +48,7 @@ for file in os.listdir(test_path + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_seen_x.append(image)
     test_seen_y.append([1, 0])
 
@@ -56,7 +58,7 @@ for file in os.listdir(test_path + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_seen_x.append(image)
     test_seen_y.append([0, 1])
 
@@ -71,7 +73,7 @@ for file in os.listdir(test_path_unseen + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_unseen_x.append(image)
     test_unseen_y.append([1, 0])
 
@@ -81,7 +83,7 @@ for file in os.listdir(test_path_unseen + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_unseen_x.append(image)
     test_unseen_y.append([0, 1])
 
@@ -110,7 +112,10 @@ plt.show()
 
 model = Generate_Model_2(num_classes, image_shape)
 #model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
-print(model.summary())
+
+#model = ResNet18_2(2)
+#model.build(input_shape = (None,244,244,3))
+#print(model.summary())
 
 
 opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 

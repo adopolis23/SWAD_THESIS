@@ -16,7 +16,7 @@ from SwadUtility import AverageWeights
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 
-
+from ModelGen import ResNet18_2
 
 
 def setSeed(seed):
@@ -50,10 +50,10 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.0001
 
-epochs = 60
+epochs = 50
 batch_size = 16
 num_classes = 2
-runs = 20
+runs = 10
 results = []
 
 NS = 3
@@ -84,7 +84,7 @@ for file in os.listdir(train_path + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     train_x.append(image)
     train_y.append([1, 0])
 
@@ -94,7 +94,7 @@ for file in os.listdir(train_path + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     train_x.append(image)
     train_y.append([0, 1])
 
@@ -109,7 +109,7 @@ for file in os.listdir(valid_path + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     val_x.append(image)
     val_y.append([1, 0])
 
@@ -119,7 +119,7 @@ for file in os.listdir(valid_path + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     val_x.append(image)
     val_y.append([0, 1])
 
@@ -135,7 +135,7 @@ for file in os.listdir(test_path + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_seen_x.append(image)
     test_seen_y.append([1, 0])
 
@@ -145,7 +145,7 @@ for file in os.listdir(test_path + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_seen_x.append(image)
     test_seen_y.append([0, 1])
 
@@ -160,7 +160,7 @@ for file in os.listdir(test_path_unseen + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_unseen_x.append(image)
     test_unseen_y.append([1, 0])
 
@@ -170,7 +170,7 @@ for file in os.listdir(test_path_unseen + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_unseen_x.append(image)
     test_unseen_y.append([0, 1])
 
@@ -338,7 +338,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         '''
 
 
-for i in range(runs):
+for i in range(5, runs):
 
     print("******* Run Number: {} *******".format(i))
 
@@ -351,9 +351,12 @@ for i in range(runs):
 
     #setSeed()
 
-    model = Generate_Model_2(num_classes, image_shape)
+    #model = Generate_Model_2(num_classes, image_shape)
     #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
-    print(model.summary())
+
+    model = ResNet18_2(2)
+    model.build(input_shape = (None,244,244,3))
+    #print(model.summary())
 
 
     #Adam optimizer with learning rate and 0.9 momentum
@@ -387,7 +390,7 @@ for i in range(runs):
 
     print("******* End Run Number: {} *******".format(i))
 
-    results.append([scores, scores_unseen])
+    results.append([scores[1], scores_unseen[1]])
 
 
 df = pd.DataFrame(results)
@@ -396,8 +399,8 @@ df.to_csv('multirun_results.csv')
 print("\n\n Final Results:\n")
 
 for i, x in enumerate(results):
-    print("\nRun: {}, Loss-Seen: {}, Accuracy-Seen: {}".format(i, x[0][0], x[0][1]))
-    print("\nRun: {}, Loss-unSeen: {}, Accuracy-unSeen: {}".format(i, x[1][0], x[1][1]))
+    print("\nRun: {}, Loss-Seen: {}".format(i, x[0]))
+    print("\nRun: {}, Loss-unSeen: {}".format(i, x[1]))
 
 
 

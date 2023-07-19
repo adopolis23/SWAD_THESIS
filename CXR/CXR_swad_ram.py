@@ -18,6 +18,7 @@ from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #den
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
 from tensorflow.keras.applications.resnet50 import ResNet50
 
+from ModelGen import ResNet18_2
 
 
 
@@ -28,7 +29,7 @@ test_path_unseen = "data/test-unseen"
 
 image_size = (244, 244)
 image_shape = (244, 244, 3)
-learning_rate = 0.0001
+learning_rate = 0.00005
 
 epochs = 50
 batch_size = 16
@@ -74,7 +75,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(1 * 406)
+setSeed(9 * 406)
 
 
 
@@ -85,7 +86,7 @@ for file in os.listdir(train_path + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     train_x.append(image)
     train_y.append([1, 0])
 
@@ -95,7 +96,7 @@ for file in os.listdir(train_path + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     train_x.append(image)
     train_y.append([0, 1])
 
@@ -110,7 +111,7 @@ for file in os.listdir(valid_path + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     val_x.append(image)
     val_y.append([1, 0])
 
@@ -120,7 +121,7 @@ for file in os.listdir(valid_path + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     val_x.append(image)
     val_y.append([0, 1])
 
@@ -136,7 +137,7 @@ for file in os.listdir(test_path + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_seen_x.append(image)
     test_seen_y.append([1, 0])
 
@@ -146,7 +147,7 @@ for file in os.listdir(test_path + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_seen_x.append(image)
     test_seen_y.append([0, 1])
 
@@ -161,7 +162,7 @@ for file in os.listdir(test_path_unseen + "/covid"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_unseen_x.append(image)
     test_unseen_y.append([1, 0])
 
@@ -171,7 +172,7 @@ for file in os.listdir(test_path_unseen + "/pneumonia"):
     image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
     image=np.array(image)
     image = image.astype('float32')
-    image /= 255 
+    #image /= 255 
     test_unseen_x.append(image)
     test_unseen_y.append([0, 1])
 
@@ -186,8 +187,12 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 model = Generate_Model_2(num_classes, image_shape)
-#model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
-#model = ResNet50(input_shape=image_shape, classes=num_classes, weights=None)
+#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+#model = ResNet18(input_shape=image_shape, classes=num_classes)
+
+#model = ResNet18_2(2)
+#model.build(input_shape = (None,244,244,3))
+
 print(model.summary())
 
 

@@ -21,14 +21,16 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2,LeNet
 from SwadUtility import AverageWeights
 
+from ModelGen import ResNet18_2
+
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 image_size = (244, 244)
 
 input_shape = (244, 244, 3)
 
-learning_rate = 0.0001
-epochs = 30
+learning_rate = 0.00005
+epochs = 50
 batch_size = 16
 
 num_classes = 2
@@ -59,7 +61,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(1 * 406)
+setSeed(5 * 406)
 
 
 train_path = "data/train"
@@ -81,6 +83,9 @@ print(tf.config.list_physical_devices())
 #build the model
 model = Generate_Model_2(input_shape=input_shape, num_classes=num_classes)
 #model = DenseNet121(input_shape=input_shape, classes=num_classes, weights=None)
+
+#model = ResNet18_2(2)
+#model.build(input_shape = (None,244,244,3))
 
 print(model.summary())
 
@@ -190,8 +195,8 @@ class swad_callback(keras.callbacks.Callback):
 
 
         #optional save loss to csv
-        #df = pd.DataFrame(self.loss_tracker)
-        #df.to_csv('loss.csv') 
+        df = pd.DataFrame(self.loss_tracker)
+        df.to_csv('loss.csv') 
 
         print("\nAveraging Weights.")
 
