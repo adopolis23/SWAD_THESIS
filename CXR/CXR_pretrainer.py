@@ -30,7 +30,7 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 201
+epochs = 100
 batch_size = 16
 num_classes = 2
 
@@ -138,12 +138,12 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 
-model = Generate_Model_2(num_classes, image_shape)
+#model = Generate_Model_2(num_classes, image_shape)
 #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
-#model = ResNet18_2(2)
-#model.build(input_shape = (None,244,244,3))
+model = ResNet18_2(2)
+model.build(input_shape = (None,244,244,3))
 
 print(model.summary())
 
@@ -176,7 +176,10 @@ class checkpoint(tf.keras.callbacks.Callback):
             self.min_loss = logs["val_loss"]
             self.min_weight = model.get_weights()
 
-            model.save_weights("PretrainedWeights/Model2/Model2WeightsEpoch" + str(epoch) + ".h5")
+            model.save_weights("PretrainedWeights/ResNet18/ResNet18WeightsEpoch" + str(epoch) + ".h5")
+        
+        if epoch in weight_save_epoch:
+            model.save_weights("PretrainedWeights/ResNet18/ResNet18WeightsEpoch" + str(epoch) + ".h5")
 
     def on_train_end(self, logs=None):
         print("\nSetting new model weights.\n")

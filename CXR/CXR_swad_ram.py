@@ -19,7 +19,7 @@ from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
 from tensorflow.keras.applications.resnet50 import ResNet50
 
 from ModelGen import ResNet18_2
-
+from ResNet18exp import ResNet18_exp
 
 
 train_path = "data/train"
@@ -31,7 +31,7 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 50
+epochs = 60
 batch_size = 16
 num_classes = 2
 
@@ -54,6 +54,7 @@ test_seen_y = []
 test_unseen_x = []
 test_unseen_y = []
 
+seeds = [63528,30270,1186,47466,13938,27248,23050,32591,70485,44794,87752,67208,48357,41003,44268,55533,54862,59718,78523,69827,33651,12194,56602]
 
 
 def setSeed(seed):
@@ -75,7 +76,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(9 * 406)
+setSeed(seeds[14])
 
 
 
@@ -193,6 +194,10 @@ model = Generate_Model_2(num_classes, image_shape)
 #model = ResNet18_2(2)
 #model.build(input_shape = (None,244,244,3))
 
+#model = ResNet18_exp(2)
+#model.build(input_shape = (None,244,244,3))
+
+
 print(model.summary())
 
 
@@ -302,7 +307,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         for weights_list_tuple in zip(*saved_weights): 
             new_weights.append(
                 np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
-            )
+            )8
         '''
 
         #set model weights to new average
@@ -327,6 +332,8 @@ model.compile(loss="categorical_crossentropy",
               optimizer=opt,
               metrics=['accuracy'])
 
+
+#model.load_weights("PretrainedWeights/ResNet18/ResNet18WeightsEpoch5.h5")
 
 
 #train the model
