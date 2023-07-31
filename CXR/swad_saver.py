@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from SwadUtility import AverageWeights
+from SwadUtility import AverageWeights, findStartAndEnd2
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
@@ -105,17 +105,23 @@ for i, x in enumerate(loss_vals):
         min_index = i
 
 print("Lowest loss at iteration: {}".format(min_index))
+ts, te = findStartAndEnd2(loss_vals)
+print("ts: {}, te: {}".format(ts, te))
+
+
 
 plt.plot(loss_vals)
+plt.axvline(x=ts, color='r')
+plt.axvline(x=te, color='b')
 plt.show()
 
 
 
-model = Generate_Model_2(num_classes, image_shape)
+#model = Generate_Model_2(num_classes, image_shape)
 #model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
 #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
-#model = ResNet18_2(2)
-#model.build(input_shape = (None,244,244,3))
+model = ResNet18_2(2)
+model.build(input_shape = (None,244,244,3))
 
 #model = ResNet18_exp(2)
 #model.build(input_shape = (None,244,244,3))

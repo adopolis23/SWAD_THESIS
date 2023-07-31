@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from SwadUtility import AverageWeights, findStartAndEnd
+from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
@@ -36,8 +36,8 @@ batch_size = 16
 num_classes = 2
 
 #swad parameters
-NS = 3
-NE = 3
+NS = 0
+NE = 0
 r = 1.2
 
 
@@ -76,7 +76,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[14])
+setSeed(seeds[11])
 
 
 
@@ -187,12 +187,12 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 
-model = Generate_Model_2(num_classes, image_shape)
+#model = Generate_Model_2(num_classes, image_shape)
 #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
-#model = ResNet18_2(2)
-#model.build(input_shape = (None,244,244,3))
+model = ResNet18_2(2)
+model.build(input_shape = (None,244,244,3))
 
 #model = ResNet18_exp(2)
 #model.build(input_shape = (None,244,244,3))
@@ -279,13 +279,16 @@ class swad_callback(tf.keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         print("\nEnd of Training")
 
+        #finds the start and end iteration to average weights
+        ts, te = findStartAndEnd2(self.loss_tracker, NS, NE, r)
+        print("ts is {} and te is {}".format(ts, te))
+
         #optional plot the loss
         plt.plot(self.loss_tracker)
+        plt.axvline(x=ts, color='r')
+        plt.axvline(x=te, color='b')
         plt.show()
 
-        #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
-        print("ts is {} and te is {} and l is {}".format(ts, te, l))
 
 
         #optional save loss to csv
@@ -333,7 +336,7 @@ model.compile(loss="categorical_crossentropy",
               metrics=['accuracy'])
 
 
-#model.load_weights("PretrainedWeights/ResNet18/ResNet18WeightsEpoch5.h5")
+model.load_weights("PretrainedWeights/ResNet18/ResNet18WeightsEpoch5.h5")
 
 
 #train the model
