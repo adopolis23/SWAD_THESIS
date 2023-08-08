@@ -14,12 +14,14 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
 from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2
 import matplotlib.pyplot as plt
-from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
+#from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
 from tensorflow.keras.applications.resnet50 import ResNet50
 
 from ModelGen import ResNet18_2
 from ResNet18exp import ResNet18_exp
+
+from modified_densenet import DenseNet121
 
 
 train_path = "data/train"
@@ -76,7 +78,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[11])
+setSeed(seeds[4])
 
 
 
@@ -188,11 +190,11 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 #model = Generate_Model_2(num_classes, image_shape)
-#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
-model = ResNet18_2(2)
-model.build(input_shape = (None,244,244,3))
+#model = ResNet18_2(2)
+#model.build(input_shape = (None,244,244,3))
 
 #model = ResNet18_exp(2)
 #model.build(input_shape = (None,244,244,3))
@@ -223,10 +225,12 @@ class checkpoint(tf.keras.callbacks.Callback):
         self.min_loss = 1000000
         self.min_weight = None
 
-    def on_epoch_end(self, epoch, logs=None):
-        if logs["val_loss"] < self.min_loss:
+    def on_train_batch_end(self, epoch, logs=None):
+        val_loss = validate2()
+
+        if val_loss < self.min_loss:
             print("\nValidation loss improved saving weights\n")
-            self.min_loss = logs["val_loss"]
+            self.min_loss = val_loss
             self.min_weight = model.get_weights()
 
     def on_train_end(self, logs=None):
@@ -336,7 +340,7 @@ model.compile(loss="categorical_crossentropy",
               metrics=['accuracy'])
 
 
-model.load_weights("PretrainedWeights/ResNet18/ResNet18WeightsEpoch5.h5")
+#model.load_weights("PretrainedWeights/ResNet18r/ResNet18rWeightsEpoch50.h5")
 
 
 #train the model
@@ -346,7 +350,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=swad_callback())
+              callbacks=checkpoint())
 
 #model evaluation
 scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)

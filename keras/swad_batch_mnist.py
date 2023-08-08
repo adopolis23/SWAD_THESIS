@@ -15,6 +15,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from sklearn.model_selection import train_test_split
 
 from ModelGen import Generate_Model_1, Generate_Model_2
+from ModelGen import ResNet18_2
 from WeightAverger import AverageWeights
 
 
@@ -41,12 +42,12 @@ weinhofer@usf.edu
 num_classes = 10
 
 #28 x 28 greyscale images
-input_shape = (28, 28, 1)
+input_shape = (28, 28)
 
 #model parameters
-batch_size = 512
-learning_rate = 0.001
-epochs = 20
+batch_size = 32
+learning_rate = 0.00005
+epochs = 1
 
 #SWAD parameters
 NS = 3 #optimum patience
@@ -76,6 +77,7 @@ x_test = x_test.astype("float32") / 255
 #create the velidation data
 x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.01, random_state=0, stratify=y_train)
 
+print("x_train.shape = ", x_train.shape)
 
 #returns the validation loss of the model
 def validate():
@@ -109,6 +111,9 @@ class LearningRateScheduler(keras.callbacks.Callback):
 #build the model
 #model definition in modelGen file
 model = Generate_Model_2(num_classes, input_shape)
+
+#model = ResNet18_2(10)
+#model.build(input_shape = input_shape)
 print(model.summary())
 
 
@@ -209,7 +214,7 @@ class swad_callback(keras.callbacks.Callback):
         ts = int(input("TS:"))
         te = int(input("TE:"))
 
-        new_weights = AverageWeights(model, ts, te, 100)
+        new_weights = AverageWeights(model, ts, te, 200)
 
 
 
@@ -233,7 +238,7 @@ class swad_callback(keras.callbacks.Callback):
 
 
 #SGD optimizer with learning rate and 0.9 momentum
-opt = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9) 
+opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
 
 #compile model with accuracy metric
 model.compile(loss="categorical_crossentropy",

@@ -78,10 +78,6 @@ x_test = x_test.astype("float32") / 255
 x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.1, random_state=0, stratify=y_train)
 
 
-
-
-
-
         
 
 

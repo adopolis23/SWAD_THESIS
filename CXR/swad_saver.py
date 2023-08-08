@@ -120,11 +120,11 @@ plt.show()
 #model = Generate_Model_2(num_classes, image_shape)
 #model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
 #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
-model = ResNet18_2(2)
-model.build(input_shape = (None,244,244,3))
-
-#model = ResNet18_exp(2)
+#model = ResNet18_2(2)
 #model.build(input_shape = (None,244,244,3))
+
+model = ResNet18_exp(2)
+model.build(input_shape = (None,244,244,3))
 #print(model.summary())
 
 
