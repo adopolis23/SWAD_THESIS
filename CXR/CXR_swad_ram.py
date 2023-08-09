@@ -78,7 +78,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[6])
+setSeed(seeds[14])
 
 
 
@@ -190,14 +190,14 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 #model = Generate_Model_2(num_classes, image_shape)
-model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
 #model = ResNet18_2(2)
 #model.build(input_shape = (None,244,244,3))
 
-#model = ResNet18_exp(2)
-#model.build(input_shape = (None,244,244,3))
+model = ResNet18_exp(2)
+model.build(input_shape = (None,244,244,3))
 
 
 print(model.summary())
@@ -340,7 +340,7 @@ model.compile(loss="categorical_crossentropy",
               metrics=['accuracy'])
 
 
-#model.load_weights("PretrainedWeights/ResNet18r/ResNet18rWeightsEpoch50.h5")
+model.load_weights("PretrainedWeights/ResNet18r/ResNet18rWeightsEpoch50.h5")
 
 
 #train the model
@@ -350,7 +350,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=checkpoint())
+              callbacks=swad_callback())
 
 #model evaluation
 scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)
