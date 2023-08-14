@@ -12,11 +12,15 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from SwadUtility import AverageWeights
+from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2
 import matplotlib.pyplot as plt
 from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 
 from ModelGen import ResNet18_2
+from ResNet18exp import ResNet18_exp
+
+
+seeds = [63528,30270,1186,47466,13938,27248,23050,32591,70485,44794,87752,67208,48357,41003,44268,55533,54862,59718,78523,69827,33651,12194,56602]
 
 
 def setSeed(seed):
@@ -48,12 +52,12 @@ test_path_unseen = "data/test-unseen"
 
 image_size = (244, 244)
 image_shape = (244, 244, 3)
-learning_rate = 0.0001
+learning_rate = 0.00005
 
-epochs = 50
+epochs = 40
 batch_size = 16
 num_classes = 2
-runs = 10
+runs = 20
 results = []
 
 NS = 3
@@ -189,50 +193,17 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 
-
 #returns the validation loss of the model
-def validate(model):
+def validate():
     return model.evaluate(val_x, val_y, verbose=0)[0]
 
 
-def validate2(model):
+def validate2():
     y_pred = model.predict(val_x, verbose=0)
     bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
     val_loss = bce(val_y, y_pred).numpy()
     return val_loss
 
-
-def findStartAndEnd(val_loss):
-    ts = 0
-    te = len(val_loss)
-    l = None
-
-    for i in range(NS-1, len(val_loss)):
-        
-        min1 = math.inf
-        for j in range(NE):
-            if val_loss[i-j] < min1:
-                min1 = val_loss[i-j]
-        
-        if l == None:
-            
-            min = math.inf
-            for j in range(NS):
-                if val_loss[i-j] < min:
-                    min = val_loss[i-j]
-
-            if val_loss[i-NS+1] == min:
-
-                ts = i-NS+1
-                sums = 0
-                for j in range(NS):
-                    sums = sums + val_loss[i-j]
-                l = (r/NS)*sums
-        
-        elif l < min1:
-            te = i-NE
-            break
-    return ts, te, l
 
 
 
@@ -243,22 +214,24 @@ class checkpoint(tf.keras.callbacks.Callback):
         self.min_loss = 1000000
         self.min_weight = None
 
-    def on_epoch_end(self, epoch, logs=None):
-        if logs["val_loss"] < self.min_loss:
+    def on_train_batch_end(self, epoch, logs=None):
+        val_loss = validate2()
+
+        if val_loss < self.min_loss:
             print("\nValidation loss improved saving weights\n")
-            self.min_loss = logs["val_loss"]
-            self.min_weight = self.model.get_weights()
+            self.min_loss = val_loss
+            self.min_weight = model.get_weights()
 
     def on_train_end(self, logs=None):
         print("\nSetting new model weights.\n")
-        self.model.set_weights(self.min_weight)
+        model.set_weights(self.min_weight)
 
 
 
 weights = []
 new_weights = list()
 
-'''
+
 #create callback for weight averaging
 class swad_callback(tf.keras.callbacks.Callback):
 
@@ -299,50 +272,57 @@ class swad_callback(tf.keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         print("\nEnd of Training")
 
-        #optional plot the loss
-        plt.plot(self.loss_tracker)
-        plt.show()
-
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd(self.loss_tracker)
-        print("ts is {} and te is {} and l is {}".format(ts, te, l))
+        ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
+        #print("ts is {} and te is {}".format(ts, te))
+
+        #optional plot the loss
+        #plt.plot(self.loss_tracker)
+        #plt.axvline(x=ts, color='r')
+        #plt.axvline(x=te, color='b')
+        #plt.show()
+
 
 
         #optional save loss to csv
-        df = pd.DataFrame(self.loss_tracker)
-        df.to_csv('loss.csv') 
+        #df = pd.DataFrame(self.loss_tracker)
+        #df.to_csv('loss.csv') 
 
-        print("\nAveraging Weights.")
+        #print("\nAveraging Weights.")
 
-        ts = int(input("TS:"))
-        te = int(input("TE:"))
+        #ts = int(input("TS:"))
+        #te = int(input("TE:"))
 
         new_weights = AverageWeights(model, ts, te, 200)
-        
 
 
-        
+
+        '''
         #average up all saved weights and store them in new_weights
         #NOTE Weight averaging!
-        #for weights_list_tuple in zip(*saved_weights): 
-            #new_weights.append(
-                #np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
-            #)
-        
+        for weights_list_tuple in zip(*saved_weights): 
+            new_weights.append(
+                np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+            )8
+        '''
 
         #set model weights to new average
         if len(new_weights) > 0:
             print("\nSetting new model weights.\n")
             model.set_weights(new_weights)
 
-        '''
 
 
-for i in range(5, runs):
+
+for i in range(10, runs):
 
     print("******* Run Number: {} *******".format(i))
 
-    setSeed((i * 406))
+    weights_folder = os.listdir("Weights")
+    for file in weights_folder:
+        os.remove("Weights/"+file)
+
+    setSeed(seeds[i])
 
     model = None
     opt = None
@@ -354,7 +334,7 @@ for i in range(5, runs):
     #model = Generate_Model_2(num_classes, image_shape)
     #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
-    model = ResNet18_2(2)
+    model = ResNet18_exp(2)
     model.build(input_shape = (None,244,244,3))
     #print(model.summary())
 
@@ -376,7 +356,7 @@ for i in range(5, runs):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=checkpoint())
+                callbacks=swad_callback())
 
     #model evaluation
     scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)

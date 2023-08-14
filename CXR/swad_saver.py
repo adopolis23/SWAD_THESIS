@@ -14,11 +14,12 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
 from SwadUtility import AverageWeights, findStartAndEnd2
 import matplotlib.pyplot as plt
-from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
+#from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
 
 from ModelGen import ResNet18_2
 from ResNet18exp import ResNet18_exp
+from modified_densenet import DenseNet121
 
 test_path = "data/test-seen"
 test_path_unseen = "data/test-unseen"
@@ -119,12 +120,12 @@ plt.show()
 
 #model = Generate_Model_2(num_classes, image_shape)
 #model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
-#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18_2(2)
 #model.build(input_shape = (None,244,244,3))
 
-model = ResNet18_exp(2)
-model.build(input_shape = (None,244,244,3))
+#model = ResNet18_exp(2)
+#model.build(input_shape = (None,244,244,3))
 #print(model.summary())
 
 

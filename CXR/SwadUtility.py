@@ -133,17 +133,18 @@ def findArrayMin(arr):
 #updated find start and end
 def findStartAndEnd2(loss, NS=0.0, NE=0.0, r=1.0):
     
+    l = 1
     minIndex, minVal = findArrayMin(loss)
 
     TS = minIndex
     TE = minIndex + 1
 
-    while loss[TS-1] >= loss[TS] - NS:
+    while loss[TS-1] >= loss[TS] - NS and loss[TS-2] >= loss[TS] - NS:
          TS = TS - 1
     
-    while loss[TE+1] >= loss[TE] - NE:
+    while loss[TE+1] >= loss[TE] - NE and loss[TE+2] >= loss[TE] - NE:
          TE = TE + 1
         
-    return TS, TE
+    return TS, TE, l
 
     
