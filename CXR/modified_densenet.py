@@ -126,7 +126,7 @@ def conv_block(x, growth_rate, name):
     )(x1)
     x1 = layers.Activation("relu", name=name + "_1_relu")(x1)
     x1 = layers.Conv2D(
-        growth_rate, 3, padding="same", use_bias=False, name=name + "_2_conv"
+        growth_rate, 7, padding="same", use_bias=False, name=name + "_2_conv"
     )(x1)
     x = layers.Concatenate(axis=bn_axis, name=name + "_concat")([x, x1])
     return x

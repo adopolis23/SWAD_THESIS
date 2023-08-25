@@ -78,7 +78,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[4])
+setSeed(seeds[1])
 
 files = os.listdir("Weights")
 for file in files:
@@ -353,7 +353,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=swad_callback())
+              callbacks=checkpoint())
 
 
 #model evaluation

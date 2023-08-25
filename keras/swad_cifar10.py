@@ -1,33 +1,28 @@
-from tabnanny import check
-import tensorflow as tf
-import os
-import cv2
-import gc
-import pandas as pd
-import math
-import numpy as np
+from keras.datasets import cifar10
 from tensorflow import keras
 from tensorflow.keras import layers
+
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import math
+import os
+import random
+import gc
+
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNormalization
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from ModelGen import Generate_Model_2, LeNet
-from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2
-import matplotlib.pyplot as plt
-#from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
-from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
-from tensorflow.keras.applications.resnet50 import ResNet50
 
-from ModelGen import ResNet18_2
-from ResNet18exp import ResNet18_exp
-
-from modified_densenet import DenseNet121
-
-from keras.datasets import mnist
 from sklearn.model_selection import train_test_split
 
+from ModelGen import Generate_Model_2
+from ModelGen import ResNet18_2
+from ResNet18exp import ResNet18_exp
+from SwadUtility import findStartAndEnd2, AverageWeights
 
+from ConvMixer import ConvMixer
 
 
 
@@ -51,21 +46,22 @@ weinhofer@usf.edu
 #10 output classes nums 0-9
 num_classes = 10
 
-#28 x 28 greyscale images
-input_shape = (None, 28, 28, 1)
+#32 x 32 3-channel color images
+input_shape = (32, 32, 3)
 
 #model parameters
-batch_size = 16
-learning_rate = 0.0001
-epochs = 50
+batch_size = 64
+learning_rate = 0.00005
+epochs = 90
+
+runs = 1
+train_size = 50000
 
 #SWAD parameters
-NS = 0
-NE = 0
-r = 1.2
+NS = 0 #optimum patience
+NE = 0 #overfit patience
+r = 1.2 #tolerance ratio
 
-runs = 20
-train_size = 700
 
 
 
@@ -98,19 +94,14 @@ for file in files:
     os.remove("Weights/"+file)
 
 
-
-
 #download data
-(x_train, y_train),(x_test, y_test) = mnist.load_data()
+(x_train, y_train),(x_test, y_test) = cifar10.load_data()
 
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
 x_train = x_train[:train_size]
 y_train = y_train[:train_size]
-
-x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
-x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
 
 print("x_train.shape = ", x_train.shape)
 print("y_train.shape = ", y_train.shape)
@@ -124,13 +115,12 @@ x_test = x_test.astype("float32") / 255
 
 
 #create the velidation data
-x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.1, random_state=0, stratify=y_train)
+x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.01, random_state=0, stratify=y_train)
 
-print("x_train.shape = ", x_train.shape)
 
 #returns the validation loss of the model
 def validate():
-    return model.evaluate(x_valid, y_valid, verbose=0)
+    return model.evaluate(x_valid, y_valid, verbose=1)
 
 
 def validate2():
@@ -139,36 +129,31 @@ def validate2():
     val_loss = bce(y_valid, y_pred).numpy()
     return val_loss
 
-
 #learning rate scheudle - constant
 def constant_lr_schedule():
     return learning_rate
 
     
+#call back class for the learning rate schedule 
+class LearningRateScheduler(keras.callbacks.Callback):
+
+    def __init__(self, schedule):
+        super().__init__()
+        self.schedule = schedule
+    
+    def on_epoch_begin(self, epoch, logs=None):
+        if not hasattr(self.model.optimizer, "lr"):
+            raise ValueError('Optimizer must have a "lr" attribute.')
+
+        scheduled_lr = self.schedule()
+        tf.keras.backend.set_value(self.model.optimizer.lr, scheduled_lr)
+        #print("\nEpoch {}: Learning rate is {}.".format(epoch, scheduled_lr))
 
 
-class checkpoint(tf.keras.callbacks.Callback):
 
-    def __init__(self):
-        self.min_loss = 1000000
-        self.min_weight = None
-        self.loss_tracker = []
 
-    def on_train_batch_end(self, epoch, logs=None):
-        val_loss = validate2()
-        self.loss_tracker.append(val_loss)
 
-        if val_loss < self.min_loss:
-            #print("\nValidation loss improved saving weights\n")
-            self.min_loss = val_loss
-            self.min_weight = model.get_weights()
 
-    def on_train_end(self, logs=None):
-        #plt.plot(self.loss_tracker)
-        #plt.show()
-
-        print("\nSetting new model weights.\n")
-        model.set_weights(self.min_weight)
 
 
 
@@ -221,21 +206,21 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
-        plt.plot(self.loss_tracker)
-        plt.axvline(x=ts, color='r')
-        plt.axvline(x=te, color='b')
-        plt.show()
+        #plt.plot(self.loss_tracker)
+        #plt.axvline(x=ts, color='r')
+        #plt.axvline(x=te, color='b')
+        #plt.show()
 
 
 
         #optional save loss to csv
-        df = pd.DataFrame(self.loss_tracker)
-        df.to_csv('loss.csv') 
+        #df = pd.DataFrame(self.loss_tracker)
+        #df.to_csv('loss.csv') 
 
-        print("\nAveraging Weights.")
+        #print("\nAveraging Weights.")
 
-        ts = int(input("TS:"))
-        te = int(input("TE:"))
+        #ts = int(input("TS:"))
+        #te = int(input("TE:"))
 
         new_weights = AverageWeights(model, ts, te, 200)
 
@@ -256,6 +241,37 @@ class swad_callback(tf.keras.callbacks.Callback):
             model.set_weights(new_weights)
 
 
+
+
+
+
+
+
+
+
+class checkpoint(tf.keras.callbacks.Callback):
+
+    def __init__(self):
+        self.min_loss = 1000000
+        self.min_weight = None
+        self.loss_tracker = []
+
+    def on_epoch_end(self, epoch, logs=None):
+        val_loss = validate2()
+        self.loss_tracker.append(val_loss)
+
+        if val_loss < self.min_loss:
+            print("\nValidation loss improved saving weights\n")
+            self.min_loss = val_loss
+            self.min_weight = model.get_weights()
+
+    def on_train_end(self, logs=None):
+        plt.plot(self.loss_tracker)
+        plt.show()
+        print("\nSetting new model weights.\n")
+        model.set_weights(self.min_weight)
+
+
 results = []
 
 for i in range(runs, runs+1):
@@ -273,13 +289,16 @@ for i in range(runs, runs+1):
 
     gc.collect()
 
-    #setSeed()
+    
+    #build the model
+
+    model = ConvMixer(num_classes)
 
     #model = Generate_Model_2(num_classes, image_shape)
     #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
-    model = ResNet18_exp(10)
-    model.build(input_shape = (None,28,28,1))
+    #model = ResNet18_exp(10)
+    #model.build(input_shape = (None,32,32,3))
     #print(model.summary())
 
 
@@ -300,7 +319,7 @@ for i in range(runs, runs+1):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=swad_callback())
+                callbacks=[checkpoint()])
 
     #model evaluation
     scores = model.evaluate(x_test, y_test, verbose=1)

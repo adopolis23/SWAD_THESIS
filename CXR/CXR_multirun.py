@@ -14,10 +14,11 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
 from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2
 import matplotlib.pyplot as plt
-from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
+#from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 
 from ModelGen import ResNet18_2
 from ResNet18exp import ResNet18_exp
+from modified_densenet import DenseNet121
 
 
 seeds = [63528,30270,1186,47466,13938,27248,23050,32591,70485,44794,87752,67208,48357,41003,44268,55533,54862,59718,78523,69827,33651,12194,56602]
@@ -54,7 +55,7 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 40
+epochs = 50
 batch_size = 16
 num_classes = 2
 runs = 20
@@ -218,7 +219,7 @@ class checkpoint(tf.keras.callbacks.Callback):
         val_loss = validate2()
 
         if val_loss < self.min_loss:
-            print("\nValidation loss improved saving weights\n")
+            #print("\nValidation loss improved saving weights\n")
             self.min_loss = val_loss
             self.min_weight = model.get_weights()
 
@@ -332,10 +333,10 @@ for i in range(10, runs):
     #setSeed()
 
     #model = Generate_Model_2(num_classes, image_shape)
-    #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+    model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
-    model = ResNet18_exp(2)
-    model.build(input_shape = (None,244,244,3))
+    #model = ResNet18_exp(2)
+    #model.build(input_shape = (None,244,244,3))
     #print(model.summary())
 
 
@@ -356,7 +357,7 @@ for i in range(10, runs):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=swad_callback())
+                callbacks=checkpoint())
 
     #model evaluation
     scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)
