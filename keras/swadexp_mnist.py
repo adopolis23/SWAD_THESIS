@@ -55,7 +55,7 @@ input_shape = (None, 28, 28, 1)
 #model parameters
 batch_size = 128
 learning_rate = 0.0001
-epochs = 1
+epochs = 20
 
 #SWAD parameters
 NS = 0
@@ -63,6 +63,7 @@ NE = 0
 r = 1.2
 
 rolling_window_size = 50
+swad_start_iter = 6000
 
 runs = 1
 
@@ -160,8 +161,15 @@ class checkpoint(tf.keras.callbacks.Callback):
             self.min_weight = model.get_weights()
 
     def on_train_end(self, logs=None):
-        #plt.plot(self.loss_tracker)
-        #plt.show()
+        #finds the start and end iteration to average weights
+        ts, te, l = findStartAndEnd2(self.loss_tracker, NS, NE, r)
+        print("ts is {} and te is {}".format(ts, te))
+
+        #optional plot the loss
+        plt.plot(self.loss_tracker)
+        plt.axvline(x=ts, color='r')
+        plt.axvline(x=te, color='b')
+        plt.show()
 
         print("\nSetting new model weights.\n")
         model.set_weights(self.min_weight)
@@ -201,7 +209,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         #finds the validation loss after this batch
         #this is very slow and this is why this takes a while
 
-        if self.iteration_tracker >= 0:
+        if self.iteration_tracker >= swad_start_iter:
             val_loss = validate2()
 
 
@@ -246,6 +254,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("\nEnd of Training")
 
         full_loss = self.curr_best_loss_hist + self.curr_best_loss_right
+        full_weights = self.curr_best_weight_hist + self.curr_best_weight_right
 
         #finds the start and end iteration to average weights
         ts, te, l = findStartAndEnd2(full_loss, NS, NE, r)
@@ -260,16 +269,20 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 
         #optional save loss to csv
-        df = pd.DataFrame(self.loss_tracker)
+        df = pd.DataFrame(full_loss)
         df.to_csv('loss.csv') 
 
         print("\nAveraging Weights.")
 
-        ts = int(input("TS:"))
-        te = int(input("TE:"))
+        #ts = int(input("TS:"))
+        #te = int(input("TE:"))
 
-        new_weights = AverageWeights(model, ts, te, 200)
 
+        for i, weight in enumerate(full_weights):
+            model.save_weights("Weights/weights_" + str(i) + ".h5")
+
+
+        new_weights = AverageWeights(model, 0, ((rolling_window_size*2) - 1), 200)
 
 
         '''
