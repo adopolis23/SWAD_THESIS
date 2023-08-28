@@ -55,7 +55,7 @@ input_shape = (None, 28, 28, 1)
 #model parameters
 batch_size = 128
 learning_rate = 0.0001
-epochs = 20
+epochs = 19
 
 #SWAD parameters
 NS = 0
@@ -65,7 +65,7 @@ r = 1.2
 rolling_window_size = 50
 swad_start_iter = 6000
 
-runs = 1
+runs = 20
 
 
 
@@ -91,7 +91,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[1])
+setSeed(seeds[4])
 
 files = os.listdir("Weights")
 for file in files:
@@ -162,14 +162,14 @@ class checkpoint(tf.keras.callbacks.Callback):
 
     def on_train_end(self, logs=None):
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd2(self.loss_tracker, NS, NE, r)
-        print("ts is {} and te is {}".format(ts, te))
+        #ts, te, l = findStartAndEnd2(self.loss_tracker, NS, NE, r)
+        #print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
-        plt.plot(self.loss_tracker)
-        plt.axvline(x=ts, color='r')
-        plt.axvline(x=te, color='b')
-        plt.show()
+        #plt.plot(self.loss_tracker)
+        #plt.axvline(x=ts, color='r')
+        #plt.axvline(x=te, color='b')
+        #plt.show()
 
         print("\nSetting new model weights.\n")
         model.set_weights(self.min_weight)
@@ -302,7 +302,7 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 results = []
 
-for i in range(runs, runs+1):
+for i in range(7, runs):
 
     print("******* Run Number: {} *******".format(i))
 
@@ -344,7 +344,7 @@ for i in range(runs, runs+1):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=swad_callback())
+                callbacks=checkpoint())
 
     #model evaluation
     scores = model.evaluate(x_test, y_test, verbose=1)
