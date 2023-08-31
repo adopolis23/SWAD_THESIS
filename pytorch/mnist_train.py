@@ -8,6 +8,7 @@ import copy
 
 import numpy as np
 import pandas as pd
+import time
 
 
 
@@ -18,8 +19,8 @@ from pytorch_models import ConvMixer
 
 
 
-batch_size = 64
-epochs = 100
+batch_size = 32
+epochs = 20
 learning_rate = 0.0001
 
 
@@ -44,12 +45,17 @@ T = torchvision.transforms.Compose([
 
 #download the data
 train_data = torchvision.datasets.CIFAR10('cifar10_data', train=True, download=True, transform=T)
-val_data = torchvision.datasets.CIFAR10('cifar10_data', train=False, download=True, transform=T)
+
+print(len(train_data))
+train_data, val_data = torch.utils.data.random_split(train_data, [45000, 5000])
+
+test_data = torchvision.datasets.CIFAR10('cifar10_data', train=False, download=True, transform=T)
 
 
 #create the data loader
 train_dl = torch.utils.data.DataLoader(train_data, batch_size = batch_size)
 val_dl = torch.utils.data.DataLoader(val_data, batch_size = batch_size)
+test_dl = torch.utils.data.DataLoader(test_data, batch_size = batch_size)
 
 
 
@@ -68,7 +74,8 @@ def validate(model, data):
     return correct*100./total
 
 
-
+#91.26 expected accuracy
+cnn = ConvMixer(dim=128, depth=4, patch_size=1, kernel_size=8, n_classes=10).to(device)
 
 
 def train(numb_epoch=3, lr=1e-3, device="cpu"):
@@ -77,8 +84,7 @@ def train(numb_epoch=3, lr=1e-3, device="cpu"):
     #create model
     #cnn = create_lenet().to(device)
 
-    #91.26 expected accuracy
-    cnn = ConvMixer(dim=256, depth=8, patch_size=8, kernel_size=8, n_classes=10).to(device)
+  
 
     #loss function
     cec = nn.CrossEntropyLoss()
@@ -90,6 +96,7 @@ def train(numb_epoch=3, lr=1e-3, device="cpu"):
 
     #main training loop
     for epoch in range(numb_epoch):
+        start_time = time.time()
 
         #for each batch in the training dataset
         for i, (images, labels) in enumerate(train_dl):
@@ -121,7 +128,9 @@ def train(numb_epoch=3, lr=1e-3, device="cpu"):
             best_model = copy.deepcopy(cnn)
             max_accuracy = accuracy
             print("Saving Best Model with Accuracy: ", accuracy)
-        print('Epoch:', epoch+1, "Accuracy :", accuracy, '%')
+        
+        elapsed_time = time.time() - start_time
+        print('Epoch:', epoch+1, "Accuracy :", accuracy, '%', "Time:", elapsed_time)
 
     #plot accuracies and save best weights
     plt.plot(accuracies)
@@ -131,6 +140,10 @@ def train(numb_epoch=3, lr=1e-3, device="cpu"):
 print("Starting Training")
 best_model = train(epochs, learning_rate, device)
 print("Training End")
+
+final_accuracy = float(validate(cnn, test_dl))
+print("Final Accuracy Is: {}".format(final_accuracy))
+
 
 #print("Total examples in train_data is: {}".format(len(train_data)))
 #print("Total examples in train_dl is: {}".format(len(train_dl)))

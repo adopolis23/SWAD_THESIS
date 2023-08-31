@@ -1,4 +1,3 @@
-from tabnanny import check
 import tensorflow as tf
 import os
 import cv2
@@ -24,52 +23,40 @@ from ResNet18exp import ResNet18_exp
 
 from modified_densenet import DenseNet121
 
-from keras.datasets import mnist
-from keras.datasets import cifar10
-from sklearn.model_selection import train_test_split
 
+train_path = "data/train"
+valid_path = "data/valid"
+test_path = "data/test-seen"
+test_path_unseen = "data/test-unseen"
 
+image_size = (244, 244)
+image_shape = (244, 244, 3)
+learning_rate = 0.00005
 
+epochs = 60
+batch_size = 16
+num_classes = 2
 
-
-'''
-SWAD is a continuation of SWA where weights are averaged much more
-frequently than in vanilla SWA. Weights are saved after every iteration. 
-
-These saved weights are then averaged together then the weights in the 
-model are updated with this new average. 
-
-
-
-Brandon Weinhofer
-U16425289
-weinhofer@usf.edu
-'''
-
-
-#10 output classes nums 0-9
-num_classes = 10
-
-#28 x 28 greyscale images
-#input_shape = (None, 28, 28, 1)
-input_shape = (None, 32, 32, 3)
-
-#model parameters
-batch_size = 128
-learning_rate = 0.0001
-epochs = 22
-
-#SWAD parameters
+#swad parameters
 NS = 0
 NE = 0
 r = 1.2
 
 rolling_window_size = 50
-swad_start_iter = 5300
-
-runs = 20
+swad_start_iter = 300
 
 
+train_x = []
+train_y = []
+
+val_x = []
+val_y = []
+
+test_seen_x = []
+test_seen_y = []
+
+test_unseen_x = []
+test_unseen_y = []
 
 seeds = [63528,30270,1186,47466,13938,27248,23050,32591,70485,44794,87752,67208,48357,41003,44268,55533,54862,59718,78523,69827,33651,12194,56602]
 
@@ -93,59 +80,148 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[4])
+setSeed(seeds[11])
 
 files = os.listdir("Weights")
 for file in files:
     os.remove("Weights/"+file)
 
 
+# LOAD TRAIN DATA
+for file in os.listdir(train_path + "/covid"):
+    
+    image = cv2.imread(train_path + "/covid/" + file)
+    image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
+    image=np.array(image)
+    image = image.astype('float32')
+    #image /= 255 
+    train_x.append(image)
+    train_y.append([1, 0])
+
+for file in os.listdir(train_path + "/pneumonia"):
+    
+    image = cv2.imread(train_path + "/pneumonia/" + file)
+    image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
+    image=np.array(image)
+    image = image.astype('float32')
+    #image /= 255 
+    train_x.append(image)
+    train_y.append([0, 1])
+
+train_y = np.asarray(train_y).reshape(-1, 2)
+train_x = np.asarray(train_x)
+# ----------------
+
+# LOAD VAL DATA
+for file in os.listdir(valid_path + "/covid"):
+    
+    image = cv2.imread(valid_path + "/covid/" + file)
+    image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
+    image=np.array(image)
+    image = image.astype('float32')
+    #image /= 255 
+    val_x.append(image)
+    val_y.append([1, 0])
+
+for file in os.listdir(valid_path + "/pneumonia"):
+    
+    image = cv2.imread(valid_path + "/pneumonia/" + file)
+    image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
+    image=np.array(image)
+    image = image.astype('float32')
+    #image /= 255 
+    val_x.append(image)
+    val_y.append([0, 1])
+
+val_y = np.asarray(val_y).reshape(-1, 2)
+val_x = np.asarray(val_x)
+# ----------------
 
 
-#download data
-(x_train, y_train),(x_test, y_test) = cifar10.load_data()
+# LOAD TEST-SEEN DATA
+for file in os.listdir(test_path + "/covid"):
+    
+    image = cv2.imread(test_path + "/covid/" + file)
+    image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
+    image=np.array(image)
+    image = image.astype('float32')
+    #image /= 255 
+    test_seen_x.append(image)
+    test_seen_y.append([1, 0])
 
-y_train = keras.utils.to_categorical(y_train, num_classes)
-y_test = keras.utils.to_categorical(y_test, num_classes)
+for file in os.listdir(test_path + "/pneumonia"):
+    
+    image = cv2.imread(test_path + "/pneumonia/" + file)
+    image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
+    image=np.array(image)
+    image = image.astype('float32')
+    #image /= 255 
+    test_seen_x.append(image)
+    test_seen_y.append([0, 1])
 
-#x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
-#x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
-x_train = x_train.reshape(x_train.shape[0], 32, 32, 3)
-x_test = x_test.reshape(x_test.shape[0], 32, 32, 3)
+test_seen_y = np.asarray(test_seen_y).reshape(-1, 2)
+test_seen_x = np.asarray(test_seen_x)
+# ----------------
 
-print("x_train.shape = ", x_train.shape)
-print("y_train.shape = ", y_train.shape)
-print("x_test.shape = ", x_test.shape)
-print("y_test.shape = ", y_test.shape)
+# LOAD TEST-UNSEEN DATA
+for file in os.listdir(test_path_unseen + "/covid"):
+    
+    image = cv2.imread(test_path_unseen + "/covid/" + file)
+    image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
+    image=np.array(image)
+    image = image.astype('float32')
+    #image /= 255 
+    test_unseen_x.append(image)
+    test_unseen_y.append([1, 0])
+
+for file in os.listdir(test_path_unseen + "/pneumonia"):
+    
+    image = cv2.imread(test_path_unseen + "/pneumonia/" + file)
+    image=cv2.resize(image, image_size,interpolation = cv2.INTER_AREA)
+    image=np.array(image)
+    image = image.astype('float32')
+    #image /= 255 
+    test_unseen_x.append(image)
+    test_unseen_y.append([0, 1])
+
+test_unseen_y = np.asarray(test_unseen_y).reshape(-1, 2)
+test_unseen_x = np.asarray(test_unseen_x)
+# ----------------
+
+image_shape = train_x[0].shape
+print("Input Shape: {}".format(image_shape))
+print("Label Shape: {}".format(train_y[0].shape))
 
 
-#normalize images to 0 - 1 range
-x_train = x_train.astype("float32") / 255
-x_test = x_test.astype("float32") / 255
+
+#model = Generate_Model_2(num_classes, image_shape)
+#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+#model = ResNet18(input_shape=image_shape, classes=num_classes)
+
+#model = ResNet18_2(2)
+#model.build(input_shape = (None,244,244,3))
+
+model = ResNet18_exp(2)
+model.build(input_shape = (None,244,244,3))
 
 
-#create the velidation data
-x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.0033, random_state=0, stratify=y_train)
+print(model.summary())
 
-print("x_valid.shape = ", x_valid.shape)
+
 
 #returns the validation loss of the model
 def validate():
-    return model.evaluate(x_valid, y_valid, verbose=0)
+    return model.evaluate(val_x, val_y, verbose=0)[0]
 
 
 def validate2():
-    y_pred = model.predict(x_valid, verbose=0)
+    y_pred = model.predict(val_x, verbose=0)
     bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
-    val_loss = bce(y_valid, y_pred).numpy()
+    val_loss = bce(val_y, y_pred).numpy()
     return val_loss
 
 
-#learning rate scheudle - constant
-def constant_lr_schedule():
-    return learning_rate
 
-    
 
 
 class checkpoint(tf.keras.callbacks.Callback):
@@ -153,31 +229,21 @@ class checkpoint(tf.keras.callbacks.Callback):
     def __init__(self):
         self.min_loss = 1000000
         self.min_weight = None
-        self.loss_tracker = []
 
-    def on_train_batch_end(self, batch, logs=None):
-        if batch % 10 == 0:
-            val_loss = validate2()
-            self.loss_tracker.append(val_loss)
+    def on_train_batch_end(self, epoch, logs=None):
+        val_loss = validate2()
 
-            if val_loss < self.min_loss:
-                #print("\nValidation loss improved saving weights\n")
-                self.min_loss = val_loss
-                self.min_weight = model.get_weights()
+        if val_loss < self.min_loss:
+            print("\nValidation loss improved saving weights\n")
+            self.min_loss = val_loss
+            self.min_weight = model.get_weights()
 
     def on_train_end(self, logs=None):
-        #finds the start and end iteration to average weights
-        #ts, te, l = findStartAndEnd2(self.loss_tracker, NS, NE, r)
-        #print("ts is {} and te is {}".format(ts, te))
-
-        #optional plot the loss
-        #plt.plot(self.loss_tracker)
-        #plt.axvline(x=ts, color='r')
-        #plt.axvline(x=te, color='b')
-        #plt.show()
-
         print("\nSetting new model weights.\n")
         model.set_weights(self.min_weight)
+
+
+
 
 
 
@@ -312,70 +378,43 @@ class swad_callback(tf.keras.callbacks.Callback):
             model.set_weights(new_weights)
 
 
-results = []
-
-for i in range(18, runs+1):
-
-    print("******* Run Number: {} *******".format(i))
-
-    weights_folder = os.listdir("Weights")
-    for file in weights_folder:
-        os.remove("Weights/"+file)
-
-    setSeed(seeds[i])
-
-    model = None
-    opt = None
-
-    gc.collect()
-
-    #setSeed()
-
-    #model = Generate_Model_2(num_classes, image_shape)
-    #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
-
-    model = ResNet18_exp(10)
-    model.build(input_shape = input_shape)
-    #print(model.summary())
-
-
-    #Adam optimizer with learning rate and 0.9 momentum
-    opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
-
-    #compile model with accuracy metric
-    model.compile(loss="categorical_crossentropy",
-                optimizer=opt,
-                metrics=['accuracy'])
 
 
 
-    #train the model
-    model.fit(x=np.array(x_train, np.float32),
-                y=np.array(y_train, np.float32),
-                validation_data=(x_valid, y_valid),
-                batch_size=batch_size,
-                epochs=epochs,
-                shuffle=True,
-                callbacks=swad_callback())
 
-    #model evaluation
-    scores = model.evaluate(x_test, y_test, verbose=1)
-    print('Test loss seen:', scores[0])
-    print('Test accuracy seen:', scores[1])
-
-    print("******* End Run Number: {} *******".format(i))
-
-    results.append(scores[1])
+#normal Keras stuff
 
 
-df = pd.DataFrame(results)
-df.to_csv('multirun_results.csv')
+#SGD optimizer with learning rate and 0.9 momentum
+opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
 
-print("\n\n Final Results:\n")
+#compile model with accuracy metric
+model.compile(loss="categorical_crossentropy",
+              optimizer=opt,
+              metrics=['accuracy'])
 
-for i, x in enumerate(results):
-    print("\nRun: {}, Loss-Seen: {}".format(i, x[0]))
-    print("\nRun: {}, Loss-unSeen: {}".format(i, x[1]))
 
+#model.load_weights("PretrainedWeights/ResNet18r/ResNet18rWeightsEpoch50.h5")
+
+
+#train the model
+model.fit(x=np.array(train_x, np.float32),
+            y=np.array(train_y, np.float32),
+            validation_data=(val_x, val_y),
+              batch_size=batch_size,
+              epochs=epochs,
+              shuffle=True,
+              callbacks=swad_callback())
+
+
+#model evaluation
+scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)
+print('Test loss seen:', scores[0])
+print('Test accuracy seen:', scores[1])
+
+#model evaluation
+scores_unseen = model.evaluate(test_unseen_x, test_unseen_y, verbose=1)
+print('Test loss unseen:', scores_unseen[0])
+print('Test accuracy unseen:', scores_unseen[1])
 
 
