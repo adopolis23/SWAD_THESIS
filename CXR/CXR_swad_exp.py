@@ -80,7 +80,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[11])
+setSeed(seeds[1])
 
 files = os.listdir("Weights")
 for file in files:
@@ -339,10 +339,10 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
-        #plt.plot(full_loss)
-        #plt.axvline(x=ts, color='r')
-        #plt.axvline(x=te, color='b')
-        #plt.show()
+        plt.plot(full_loss)
+        plt.axvline(x=ts, color='r')
+        plt.axvline(x=te, color='b')
+        plt.show()
 
 
 
@@ -352,8 +352,8 @@ class swad_callback(tf.keras.callbacks.Callback):
 
         print("\nAveraging Weights.")
 
-        #ts = int(input("TS:"))
-        #te = int(input("TE:"))
+        ts = int(input("TS:"))
+        te = int(input("TE:"))
 
 
         for i, weight in enumerate(full_weights):

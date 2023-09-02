@@ -43,7 +43,7 @@ test_seen_path = "data/test-seen"
 test_unseen_path = "data/test-unseen"
 
 
-'''
+
 
 #split and move all covid sources
 for source in covid_sources:
@@ -126,7 +126,16 @@ for source in unseen_pnuemonia:
         shutil.copyfile(processed_pneumonia + "/" + source + "/" + file, test_unseen_path + "/pneumonia/" + file)
 
 
-'''
+
+
+
+
+
+#optional
+#augment training pneumonia data
+from data_augmentor import augment_pneumonia
+augment_pneumonia()
+
 
 
 

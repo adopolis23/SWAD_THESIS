@@ -33,7 +33,7 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 60
+epochs = 33
 batch_size = 16
 num_classes = 2
 
@@ -193,14 +193,14 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 #model = Generate_Model_2(num_classes, image_shape)
-model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
 #model = ResNet18_2(2)
 #model.build(input_shape = (None,244,244,3))
 
-#model = ResNet18_exp(2)
-#model.build(input_shape = (None,244,244,3))
+model = ResNet18_exp(2)
+model.build(input_shape = (None,244,244,3))
 
 
 print(model.summary())
@@ -227,9 +227,11 @@ class checkpoint(tf.keras.callbacks.Callback):
     def __init__(self):
         self.min_loss = 1000000
         self.min_weight = None
+        self.loss_tracker = []
 
     def on_train_batch_end(self, epoch, logs=None):
         val_loss = validate2()
+        self.loss_tracker.append(val_loss)
 
         if val_loss < self.min_loss:
             print("\nValidation loss improved saving weights\n")
@@ -237,6 +239,9 @@ class checkpoint(tf.keras.callbacks.Callback):
             self.min_weight = model.get_weights()
 
     def on_train_end(self, logs=None):
+        plt.plot(self.loss_tracker)
+        plt.show()
+
         print("\nSetting new model weights.\n")
         model.set_weights(self.min_weight)
 
@@ -287,7 +292,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("\nEnd of Training")
 
         #finds the start and end iteration to average weights
-        ts, te = findStartAndEnd2(self.loss_tracker, NS, NE, r)
+        ts, te, l = findStartAndEnd2(self.loss_tracker, NS, NE, r)
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
@@ -353,7 +358,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=checkpoint())
+              callbacks=swad_callback())
 
 
 #model evaluation
