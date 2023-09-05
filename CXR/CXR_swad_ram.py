@@ -358,7 +358,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=swad_callback())
+              callbacks=checkpoint())
 
 
 #model evaluation

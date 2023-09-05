@@ -274,7 +274,7 @@ class checkpoint(tf.keras.callbacks.Callback):
 
 results = []
 
-for i in range(runs, runs+1):
+for i in range(runs):
 
     print("******* Run Number: {} *******".format(i))
 
@@ -292,13 +292,13 @@ for i in range(runs, runs+1):
     
     #build the model
 
-    model = ConvMixer(num_classes)
+    #model = ConvMixer(num_classes)
 
     #model = Generate_Model_2(num_classes, image_shape)
     #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
-    #model = ResNet18_exp(10)
-    #model.build(input_shape = (None,32,32,3))
+    model = ResNet18_exp(10)
+    model.build(input_shape = (None,32,32,3))
     #print(model.summary())
 
 
@@ -319,7 +319,7 @@ for i in range(runs, runs+1):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=[checkpoint()])
+                callbacks=[swad_callback()])
 
     #model evaluation
     scores = model.evaluate(x_test, y_test, verbose=1)

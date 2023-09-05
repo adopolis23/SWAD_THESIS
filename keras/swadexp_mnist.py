@@ -67,7 +67,7 @@ r = 1.2
 rolling_window_size = 50
 swad_start_iter = 5300
 
-runs = 20
+runs = 5
 
 
 
@@ -289,22 +289,20 @@ class swad_callback(tf.keras.callbacks.Callback):
         #ts = int(input("TS:"))
         #te = int(input("TE:"))
 
-
+        new_weights = list()
+        '''
         for i, weight in enumerate(full_weights):
             model.save_weights("Weights/weights_" + str(i) + ".h5")
 
 
-        new_weights = AverageWeights(model, 0, ((rolling_window_size*2) - 1), 200)
-
-
+        #new_weights = AverageWeights(model, 0, ((rolling_window_size*2) - 1), 200)
+        new_weights = AverageWeights(model, ts, te, 200)
         '''
-        #average up all saved weights and store them in new_weights
-        #NOTE Weight averaging!
-        for weights_list_tuple in zip(*saved_weights): 
-            new_weights.append(
-                np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
-            )8
-        '''
+        for weights_list_tuple in zip(*full_weights): 
+                new_weights.append(
+                    np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+                )
+
 
         #set model weights to new average
         if len(new_weights) > 0:
@@ -314,7 +312,7 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 results = []
 
-for i in range(18, runs+1):
+for i in range(runs):
 
     print("******* Run Number: {} *******".format(i))
 
