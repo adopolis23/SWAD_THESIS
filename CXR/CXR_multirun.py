@@ -357,7 +357,7 @@ for i in range(runs):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=swad_callback())
+                callbacks=checkpoint())
 
     #model evaluation
     scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)

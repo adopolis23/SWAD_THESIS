@@ -19,9 +19,13 @@ from pytorch_models import ConvMixer
 
 
 
-batch_size = 32
-epochs = 20
-learning_rate = 0.0001
+batch_size = 4
+epochs = 100
+learning_rate = 0.001
+momentum = 0.9
+weight_decay = 0
+
+check_freq = 2000
 
 
 
@@ -36,20 +40,32 @@ else:
 device
 
 
-
+'''
 #create the transorm to_tensor
 T = torchvision.transforms.Compose([
     torchvision.transforms.ToTensor()
 ])
+'''
+T_train = torchvision.transforms.Compose(
+    [
+    torchvision.transforms.RandomCrop(32, padding=4),
+    torchvision.transforms.RandomHorizontalFlip(),
+    torchvision.transforms.ToTensor(),
+     torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+
+T_test = torchvision.transforms.Compose(
+    [torchvision.transforms.ToTensor(),
+     torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+
 
 
 #download the data
-train_data = torchvision.datasets.CIFAR10('cifar10_data', train=True, download=True, transform=T)
+train_data = torchvision.datasets.CIFAR10('cifar10_data', train=True, download=True, transform=T_train)
 
 print(len(train_data))
 train_data, val_data = torch.utils.data.random_split(train_data, [45000, 5000])
 
-test_data = torchvision.datasets.CIFAR10('cifar10_data', train=False, download=True, transform=T)
+test_data = torchvision.datasets.CIFAR10('cifar10_data', train=False, download=True, transform=T_test)
 
 
 #create the data loader
@@ -74,6 +90,27 @@ def validate(model, data):
     return correct*100./total
 
 
+def validate2(model, test_loader):
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for i, (images, labels) in enumerate(test_loader):
+            images = images.cuda()
+
+            outputs = model(images)
+
+            _, predicted = torch.max(outputs.data, 1)
+            predicted = predicted.to("cpu")
+
+
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    
+    return (100 * correct // total)
+    
+
+
 #91.26 expected accuracy
 cnn = ConvMixer(dim=128, depth=4, patch_size=1, kernel_size=8, n_classes=10).to(device)
 
@@ -90,9 +127,11 @@ def train(numb_epoch=3, lr=1e-3, device="cpu"):
     cec = nn.CrossEntropyLoss()
 
     #adam optimizer
-    optimizer = optim.Adam(cnn.parameters(), lr=lr)
+    #optimizer = optim.Adam(cnn.parameters(), lr=lr)
+    optimizer = optim.SGD(cnn.parameters(), lr=lr, weight_decay=weight_decay)
 
     max_accuracy = 0
+    running_loss = 0.0
 
     #main training loop
     for epoch in range(numb_epoch):
@@ -119,8 +158,14 @@ def train(numb_epoch=3, lr=1e-3, device="cpu"):
             loss.backward()
             optimizer.step()
 
+            # print statistics
+            running_loss += loss.item()
+            if i % check_freq == 0:    # print every 2000 mini-batches
+                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+                running_loss = 0.0
+
         #validation accuracy calculation
-        accuracy = float(validate(cnn, val_dl))
+        accuracy = float(validate2(cnn, val_dl))
         accuracies.append(accuracy)
 
         #if accuracy is better than current best save weights
@@ -141,7 +186,7 @@ print("Starting Training")
 best_model = train(epochs, learning_rate, device)
 print("Training End")
 
-final_accuracy = float(validate(cnn, test_dl))
+final_accuracy = float(validate2(cnn, test_dl))
 print("Final Accuracy Is: {}".format(final_accuracy))
 
 

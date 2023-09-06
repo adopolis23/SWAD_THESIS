@@ -67,7 +67,7 @@ r = 1.2
 rolling_window_size = 50
 swad_start_iter = 5300
 
-runs = 5
+runs = 20
 
 
 
@@ -289,6 +289,8 @@ class swad_callback(tf.keras.callbacks.Callback):
         #ts = int(input("TS:"))
         #te = int(input("TE:"))
 
+        cut_weights = full_weights[ts:te+1]
+
         new_weights = list()
         '''
         for i, weight in enumerate(full_weights):
@@ -298,7 +300,9 @@ class swad_callback(tf.keras.callbacks.Callback):
         #new_weights = AverageWeights(model, 0, ((rolling_window_size*2) - 1), 200)
         new_weights = AverageWeights(model, ts, te, 200)
         '''
-        for weights_list_tuple in zip(*full_weights): 
+
+        #Weight Averaging
+        for weights_list_tuple in zip(*cut_weights): 
                 new_weights.append(
                     np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
                 )
@@ -312,7 +316,7 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 results = []
 
-for i in range(runs):
+for i in range(5, runs):
 
     print("******* Run Number: {} *******".format(i))
 

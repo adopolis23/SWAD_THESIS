@@ -19,7 +19,9 @@ img_percent_noise = 1.0
 
 #for gaussian noise
 mean = 0
-variance = 10
+
+#std dev of 0.01
+variance = 0.0001
 
 
 
