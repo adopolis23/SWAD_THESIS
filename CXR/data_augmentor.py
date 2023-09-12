@@ -9,6 +9,7 @@ pneumonia_sources = ["padchest", "NIH", "chexpert"]
 held_out = ["NIH"]
 
 pneumonia_training_dir = "data/train/pneumonia/"
+covid_training_dir = "data/train/covid/"
 
 #percent of total pneumonia images to be augmented for now we do all of them to double dataset size
 #CANNOT be greater than 1 bad things will happen
@@ -95,7 +96,29 @@ def augment_pneumonia():
         num_files_to_augmnet -= 1
 
 
+#adds noise to all training images in place
+def add_noise_all_training():
+    print("Adding Noise...")
 
+    #list training dir
+    covid_training = os.listdir(covid_training_dir)
+    pneumonia_training = os.listdir(pneumonia_training_dir)
+
+    #augment all covid training images
+    for file in covid_training:
+        image = cv2.imread(covid_training_dir + file)
+        image=np.array(image)
+        new_image = add_gauss_noise(image, variance, mean)
+        cv2.imwrite(covid_training_dir + file, new_image)
+
+    #augment all covid training images
+    for file in pneumonia_training:
+        image = cv2.imread(pneumonia_training_dir + file)
+        image=np.array(image)
+        new_image = add_gauss_noise(image, variance, mean)
+        cv2.imwrite(pneumonia_training_dir + file, new_image)
+
+    print("Complete")
 
 
 

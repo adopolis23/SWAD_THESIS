@@ -1,6 +1,7 @@
 import os
 import shutil
 import random
+from data_augmentor import augment_pneumonia, add_noise_all_training
 
 #covid sources are 
 #china = 393
@@ -133,8 +134,7 @@ for source in unseen_pnuemonia:
 
 #optional
 #augment training pneumonia data
-from data_augmentor import augment_pneumonia
-augment_pneumonia()
+#augment_pneumonia()
 
 
 
@@ -154,3 +154,8 @@ for f in [['data/train/covid', 'data/train/pneumonia'], ['data/valid/covid', 'da
             file = random.choice(os.listdir(f[0]))
             os.remove(f[0]+"/"+file)
 
+
+
+#optional
+#add gauss noise to all training data
+add_noise_all_training()
