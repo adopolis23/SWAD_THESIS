@@ -33,7 +33,7 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 33
+epochs = 12
 batch_size = 16
 num_classes = 2
 
@@ -221,6 +221,49 @@ def validate2():
 
 
 
+class swad_fake(tf.keras.callbacks.Callback):
+
+    def __init__(self):
+        self.min_loss = 1000000
+        self.accumulator = None
+        self.loss_tracker = []
+        self.num = 0
+
+    def on_train_batch_end(self, epoch, logs=None):
+        val_loss = validate2()
+        self.loss_tracker.append(val_loss)
+
+        
+        if self.accumulator == None:
+            self.accumulator = model.get_weights()
+        else:
+
+            weight_set = [self.accumulator, model.get_weights()]
+
+            new_weights = list()
+            for weights_list_tuple in zip(*weight_set): 
+                new_weights.append(
+                    np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+                )
+            
+            new_weights = list()
+            for weights_list_tuple in zip(*weight_set): 
+                new_weights.append(
+                    np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+                )
+            
+            self.accumulator = np.divide(new_weights, 2)
+
+
+
+    def on_train_end(self, logs=None):
+
+        print("\nSetting new model weights.\n")
+        model.set_weights(self.min_weight)
+
+
+
+
 
 class checkpoint(tf.keras.callbacks.Callback):
 
@@ -234,7 +277,7 @@ class checkpoint(tf.keras.callbacks.Callback):
         self.loss_tracker.append(val_loss)
 
         if val_loss < self.min_loss:
-            print("\nValidation loss improved saving weights\n")
+            #print("\nValidation loss improved saving weights\n")
             self.min_loss = val_loss
             self.min_weight = model.get_weights()
 
@@ -358,7 +401,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=swad_callback())
+              callbacks=swad_fake())
 
 
 #model evaluation

@@ -158,4 +158,4 @@ for f in [['data/train/covid', 'data/train/pneumonia'], ['data/valid/covid', 'da
 
 #optional
 #add gauss noise to all training data
-add_noise_all_training()
+#add_noise_all_training()

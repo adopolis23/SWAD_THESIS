@@ -33,7 +33,7 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 60
+epochs = 12
 batch_size = 16
 num_classes = 2
 
@@ -43,7 +43,7 @@ NE = 0
 r = 1.2
 
 rolling_window_size = 50
-swad_start_iter = 300
+swad_start_iter = 1
 
 
 train_x = []
