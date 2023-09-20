@@ -206,9 +206,13 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 
-model = ResNet18_exp(2)
-model.build(input_shape = (None,244,244,3))
+#model = ResNet18_exp(2)
+#model.build(input_shape = (None,244,244,3))
 
+#model = ResNet18_2(2)
+#model.build(input_shape = (None,244,244,3))
+
+model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
 print(model.summary())
 
@@ -258,6 +262,18 @@ class weight_saver_callback(keras.callbacks.Callback):
         self.epoch_tracker += 1
         
 
+#finds the index of an array that has the minimum value
+def findMinIndex(arr):
+    minVal = math.inf
+    minIndex = 0
+
+    for i in range(len(arr)):
+        if arr[i] < minVal:
+            minVal = arr[i]
+            minIndex = i
+    
+    return minIndex
+
 
 
 
@@ -282,17 +298,6 @@ model.fit(x=np.array(train_x, np.float32),
 
 
 
-#finds the index of an array that has the minimum value
-def findMinIndex(arr):
-    minVal = math.inf
-    minIndex = 0
-
-    for i in range(len(arr)):
-        if arr[i] < minVal:
-            minVal = arr[i]
-            minIndex = i
-    
-    return minIndex
 
 
 
@@ -309,8 +314,9 @@ for i in range(n_models):
     #remove loss from loss list
 
     #create model with those weights
-    model = ResNet18_exp(2)
-    model.build(input_shape = (None,244,244,3))
+    #model = ResNet18_2(2)
+    #model.build(input_shape = (None,244,244,3))
+    model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
     model.compile(loss="categorical_crossentropy",
               optimizer=opt,

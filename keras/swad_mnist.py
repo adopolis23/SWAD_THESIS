@@ -57,14 +57,14 @@ input_shape = (None, 28, 28, 1)
 #model parameters
 batch_size = 16
 learning_rate = 0.0001
-epochs = 50
+epochs = 12
 
 #SWAD parameters
 NS = 0
 NE = 0
 r = 1.2
 
-runs = 20
+runs = 1
 train_size = 700
 
 
@@ -172,6 +172,43 @@ class checkpoint(tf.keras.callbacks.Callback):
 
 
 
+
+
+class swad_fake(tf.keras.callbacks.Callback):
+
+    def __init__(self):
+        self.min_loss = 1000000
+        self.accumulator = None
+        self.loss_tracker = []
+        self.num = 0
+
+    def on_train_batch_end(self, epoch, logs=None):
+        val_loss = validate2()
+        self.loss_tracker.append(val_loss)
+
+        
+        if self.accumulator == None:
+            self.accumulator = model.get_weights()
+        else:
+
+            weight_set = [self.accumulator, model.get_weights()]
+
+            new_weights = list()
+            for weights_list_tuple in zip(*weight_set): 
+                new_weights.append(
+                    np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+                )
+            
+            new_weights = list()
+            for weights_list_tuple in zip(*weight_set): 
+                new_weights.append(
+                    np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+                )
+            
+            self.accumulator = np.divide(new_weights, 2)
+
+
+
 weights = []
 new_weights = list()
 
@@ -258,7 +295,7 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 results = []
 
-for i in range(runs, runs+1):
+for i in range(runs):
 
     print("******* Run Number: {} *******".format(i))
 
@@ -300,7 +337,7 @@ for i in range(runs, runs+1):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=swad_callback())
+                callbacks=swad_fake())
 
     #model evaluation
     scores = model.evaluate(x_test, y_test, verbose=1)

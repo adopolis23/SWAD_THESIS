@@ -51,13 +51,13 @@ weinhofer@usf.edu
 num_classes = 10
 
 #28 x 28 greyscale images
-#input_shape = (None, 28, 28, 1)
-input_shape = (None, 32, 32, 3)
+input_shape = (None, 28, 28, 1)
+#input_shape = (None, 32, 32, 3)
 
 #model parameters
-batch_size = 128
+batch_size = 16
 learning_rate = 0.0001
-epochs = 22
+epochs = 12
 
 #SWAD parameters
 NS = 0
@@ -65,9 +65,11 @@ NE = 0
 r = 1.2
 
 rolling_window_size = 50
-swad_start_iter = 5300
+swad_start_iter = 0
 
-runs = 20
+runs = 1
+
+train_size = 700
 
 
 
@@ -103,15 +105,18 @@ for file in files:
 
 
 #download data
-(x_train, y_train),(x_test, y_test) = cifar10.load_data()
+(x_train, y_train),(x_test, y_test) = mnist.load_data()
 
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
-#x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
-#x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
-x_train = x_train.reshape(x_train.shape[0], 32, 32, 3)
-x_test = x_test.reshape(x_test.shape[0], 32, 32, 3)
+x_train = x_train[:train_size]
+y_train = y_train[:train_size]
+
+x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
+x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
+#x_train = x_train.reshape(x_train.shape[0], 32, 32, 3)
+#x_test = x_test.reshape(x_test.shape[0], 32, 32, 3)
 
 print("x_train.shape = ", x_train.shape)
 print("y_train.shape = ", y_train.shape)
@@ -125,7 +130,7 @@ x_test = x_test.astype("float32") / 255
 
 
 #create the velidation data
-x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.0033, random_state=0, stratify=y_train)
+x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.1, random_state=0, stratify=y_train)
 
 print("x_valid.shape = ", x_valid.shape)
 
@@ -156,14 +161,14 @@ class checkpoint(tf.keras.callbacks.Callback):
         self.loss_tracker = []
 
     def on_train_batch_end(self, batch, logs=None):
-        if batch % 10 == 0:
-            val_loss = validate2()
-            self.loss_tracker.append(val_loss)
+        
+        val_loss = validate2()
+        self.loss_tracker.append(val_loss)
 
-            if val_loss < self.min_loss:
-                #print("\nValidation loss improved saving weights\n")
-                self.min_loss = val_loss
-                self.min_weight = model.get_weights()
+        if val_loss < self.min_loss:
+            #print("\nValidation loss improved saving weights\n")
+            self.min_loss = val_loss
+            self.min_weight = model.get_weights()
 
     def on_train_end(self, logs=None):
         #finds the start and end iteration to average weights
@@ -316,7 +321,7 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 results = []
 
-for i in range(5, runs):
+for i in range(runs):
 
     print("******* Run Number: {} *******".format(i))
 

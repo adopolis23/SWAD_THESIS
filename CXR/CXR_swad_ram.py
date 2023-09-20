@@ -31,15 +31,17 @@ test_path_unseen = "data/test-unseen"
 
 image_size = (244, 244)
 image_shape = (244, 244, 3)
-learning_rate = 0.00005
 
-epochs = 12
+#default = 0.00005
+learning_rate = 0.0001
+
+epochs = 50
 batch_size = 16
 num_classes = 2
 
 #swad parameters
-NS = 0
-NE = 0
+NS = 3
+NE = 3
 r = 1.2
 
 
@@ -78,7 +80,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[1])
+setSeed(seeds[3])
 
 files = os.listdir("Weights")
 for file in files:
@@ -193,14 +195,15 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 #model = Generate_Model_2(num_classes, image_shape)
-#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+#model = ResNet50(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
 #model = ResNet18_2(2)
 #model.build(input_shape = (None,244,244,3))
 
-model = ResNet18_exp(2)
-model.build(input_shape = (None,244,244,3))
+#model = ResNet18_exp(2)
+#model.build(input_shape = (None,244,244,3))
 
 
 print(model.summary())
@@ -282,7 +285,23 @@ class checkpoint(tf.keras.callbacks.Callback):
             self.min_weight = model.get_weights()
 
     def on_train_end(self, logs=None):
+        ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
+        print("ts is {} and te is {}".format(ts, te))
+
+        #optional plot the loss
         plt.plot(self.loss_tracker)
+        plt.axvline(x=ts, color='r')
+        plt.axvline(x=te, color='b')
+        plt.show()
+
+
+        ts, te, l = findStartAndEnd2(self.loss_tracker, 0, 0, r)
+        print("ts is {} and te is {}".format(ts, te))
+
+        #optional plot the loss
+        plt.plot(self.loss_tracker)
+        plt.axvline(x=ts, color='r')
+        plt.axvline(x=te, color='b')
         plt.show()
 
         print("\nSetting new model weights.\n")
@@ -335,7 +354,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("\nEnd of Training")
 
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd2(self.loss_tracker, NS, NE, r)
+        ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
@@ -401,7 +420,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=swad_fake())
+              callbacks=checkpoint())
 
 
 #model evaluation
