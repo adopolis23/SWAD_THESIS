@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2
+from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2, findStartAndEnd3
 import matplotlib.pyplot as plt
 #from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
@@ -35,7 +35,7 @@ image_shape = (244, 244, 3)
 #default = 0.00005
 learning_rate = 0.0001
 
-epochs = 50
+epochs = 55
 batch_size = 16
 num_classes = 2
 
@@ -195,15 +195,15 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 #model = Generate_Model_2(num_classes, image_shape)
-model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet50(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
 #model = ResNet18_2(2)
 #model.build(input_shape = (None,244,244,3))
 
-#model = ResNet18_exp(2)
-#model.build(input_shape = (None,244,244,3))
+model = ResNet18_exp(2)
+model.build(input_shape = (None,244,244,3))
 
 
 print(model.summary())
@@ -295,7 +295,7 @@ class checkpoint(tf.keras.callbacks.Callback):
         plt.show()
 
 
-        ts, te, l = findStartAndEnd2(self.loss_tracker, 0, 0, r)
+        ts, te, l = findStartAndEnd3(self.loss_tracker, NS, NE, r)
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
@@ -354,7 +354,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("\nEnd of Training")
 
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
+        ts, te, l = findStartAndEnd3(self.loss_tracker, NS, NE, r)
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss

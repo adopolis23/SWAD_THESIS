@@ -148,3 +148,46 @@ def findStartAndEnd2(loss, NS=0.0, NE=0.0, r=1.0):
     return TS, TE, l
 
     
+
+def minVal(loss, curr_i, ns):
+    min_value = 999999999
+    
+    for i in range(ns):
+        if loss[curr_i - i] < min_value:
+            min_value = loss[curr_i - i]
+    
+    return min_value
+
+
+def avgLastR(loss, curr_i, ns, r):
+    curr_sum = 0
+    for i in range(ns):
+        curr_sum = curr_sum + loss[curr_i - i]
+    
+    curr_sum = (curr_sum / ns) * r
+    
+    return curr_sum
+
+
+
+def findStartAndEnd3(loss, ns, ne, r):
+    
+    ts = 0
+    te = 0
+    l = None
+    
+    #main loop
+    for i, curr_loss in enumerate(loss):
+        if i < ns:
+            continue
+        
+        if l == None:
+            if loss[i-ns+1] == minVal(loss, i, ns):
+                ts = i - ns + 1
+                #print("ts Set on {}, minval is {}".format(i, minVal(loss, i, ns)))
+                l = avgLastR(loss, i, ns, r)
+                print("L set to {}".format(l))
+        elif l < minVal(loss, i, ne):
+            te = i - ne
+    
+    return ts, te, 1
