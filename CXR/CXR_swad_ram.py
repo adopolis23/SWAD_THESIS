@@ -4,6 +4,7 @@ import cv2
 import gc
 import pandas as pd
 import math
+import time
 import numpy as np
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -35,7 +36,7 @@ image_shape = (244, 244, 3)
 #default = 0.00005
 learning_rate = 0.0001
 
-epochs = 55
+epochs = 30
 batch_size = 16
 num_classes = 2
 
@@ -224,48 +225,6 @@ def validate2():
 
 
 
-class swad_fake(tf.keras.callbacks.Callback):
-
-    def __init__(self):
-        self.min_loss = 1000000
-        self.accumulator = None
-        self.loss_tracker = []
-        self.num = 0
-
-    def on_train_batch_end(self, epoch, logs=None):
-        val_loss = validate2()
-        self.loss_tracker.append(val_loss)
-
-        
-        if self.accumulator == None:
-            self.accumulator = model.get_weights()
-        else:
-
-            weight_set = [self.accumulator, model.get_weights()]
-
-            new_weights = list()
-            for weights_list_tuple in zip(*weight_set): 
-                new_weights.append(
-                    np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
-                )
-            
-            new_weights = list()
-            for weights_list_tuple in zip(*weight_set): 
-                new_weights.append(
-                    np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
-                )
-            
-            self.accumulator = np.divide(new_weights, 2)
-
-
-
-    def on_train_end(self, logs=None):
-
-        print("\nSetting new model weights.\n")
-        model.set_weights(self.min_weight)
-
-
-
 
 
 class checkpoint(tf.keras.callbacks.Callback):
@@ -273,11 +232,9 @@ class checkpoint(tf.keras.callbacks.Callback):
     def __init__(self):
         self.min_loss = 1000000
         self.min_weight = None
-        self.loss_tracker = []
 
     def on_train_batch_end(self, epoch, logs=None):
         val_loss = validate2()
-        self.loss_tracker.append(val_loss)
 
         if val_loss < self.min_loss:
             #print("\nValidation loss improved saving weights\n")
@@ -285,27 +242,62 @@ class checkpoint(tf.keras.callbacks.Callback):
             self.min_weight = model.get_weights()
 
     def on_train_end(self, logs=None):
-        ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
-        print("ts is {} and te is {}".format(ts, te))
-
-        #optional plot the loss
-        plt.plot(self.loss_tracker)
-        plt.axvline(x=ts, color='r')
-        plt.axvline(x=te, color='b')
-        plt.show()
+        print("\nSetting new model weights.\n")
+        model.set_weights(self.min_weight)
 
 
-        ts, te, l = findStartAndEnd3(self.loss_tracker, NS, NE, r)
-        print("ts is {} and te is {}".format(ts, te))
 
-        #optional plot the loss
-        plt.plot(self.loss_tracker)
-        plt.axvline(x=ts, color='r')
-        plt.axvline(x=te, color='b')
-        plt.show()
+
+class swad_fake(tf.keras.callbacks.Callback):
+
+    def __init__(self):
+        self.min_loss = 1000000
+        self.accumulator = None
+        self.loss_tracker = []
+        self.num = 0
+        self.iteration_tracker = 0
+
+    def on_train_batch_end(self, epoch, logs=None):
+        val_loss = validate2()
+        self.loss_tracker.append(val_loss)
+
+        if self.iteration_tracker >= 890:
+            
+            if self.accumulator == None:
+                self.accumulator = model.get_weights()
+                self.min_weight = self.accumulator
+            else:
+
+                weight_set = [self.accumulator, model.get_weights()]
+
+                new_weights = list()
+                for weights_list_tuple in zip(*weight_set): 
+                    new_weights.append(
+                        np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+                    )
+                
+                new_weights = list()
+                for weights_list_tuple in zip(*weight_set): 
+                    new_weights.append(
+                        np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+                    )
+                
+                self.accumulator = np.divide(new_weights, 2)
+        
+
+
+        self.iteration_tracker += 1
+
+
+
+    def on_train_end(self, logs=None):
 
         print("\nSetting new model weights.\n")
         model.set_weights(self.min_weight)
+
+
+
+
 
 
 
@@ -358,10 +350,10 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
-        plt.plot(self.loss_tracker)
-        plt.axvline(x=ts, color='r')
-        plt.axvline(x=te, color='b')
-        plt.show()
+        #plt.plot(self.loss_tracker)
+        #plt.axvline(x=ts, color='r')
+        #plt.axvline(x=te, color='b')
+        #plt.show()
 
 
 
@@ -371,8 +363,8 @@ class swad_callback(tf.keras.callbacks.Callback):
 
         print("\nAveraging Weights.")
 
-        ts = int(input("TS:"))
-        te = int(input("TE:"))
+        #ts = int(input("TS:"))
+        #te = int(input("TE:"))
 
         new_weights = AverageWeights(model, ts, te, 200)
 
@@ -413,6 +405,8 @@ model.compile(loss="categorical_crossentropy",
 #model.load_weights("PretrainedWeights/ResNet18r/ResNet18rWeightsEpoch50.h5")
 
 
+start_time = time.time()
+
 #train the model
 model.fit(x=np.array(train_x, np.float32),
             y=np.array(train_y, np.float32),
@@ -420,8 +414,11 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=checkpoint())
+              callbacks=swad_fake())
 
+elapsed_time = time.time() - start_time
+
+print("Total training time: {}".format(elapsed_time))
 
 #model evaluation
 scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)

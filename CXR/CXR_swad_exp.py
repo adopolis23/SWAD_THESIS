@@ -5,6 +5,7 @@ import gc
 import pandas as pd
 import math
 import numpy as np
+import time
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
@@ -33,7 +34,7 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 12
+epochs = 50
 batch_size = 16
 num_classes = 2
 
@@ -339,10 +340,10 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
-        plt.plot(full_loss)
-        plt.axvline(x=ts, color='r')
-        plt.axvline(x=te, color='b')
-        plt.show()
+        #plt.plot(full_loss)
+        #plt.axvline(x=ts, color='r')
+        #plt.axvline(x=te, color='b')
+        #plt.show()
 
 
 
@@ -352,8 +353,8 @@ class swad_callback(tf.keras.callbacks.Callback):
 
         print("\nAveraging Weights.")
 
-        ts = int(input("TS:"))
-        te = int(input("TE:"))
+        #ts = int(input("TS:"))
+        #te = int(input("TE:"))
 
 
         for i, weight in enumerate(full_weights):
@@ -396,7 +397,7 @@ model.compile(loss="categorical_crossentropy",
 
 #model.load_weights("PretrainedWeights/ResNet18r/ResNet18rWeightsEpoch50.h5")
 
-
+start_time = time.time()
 #train the model
 model.fit(x=np.array(train_x, np.float32),
             y=np.array(train_y, np.float32),
@@ -405,6 +406,9 @@ model.fit(x=np.array(train_x, np.float32),
               epochs=epochs,
               shuffle=True,
               callbacks=swad_callback())
+
+elapsed_time = time.time() - start_time
+print("Total time is: {}".format(elapsed_time))
 
 
 #model evaluation
