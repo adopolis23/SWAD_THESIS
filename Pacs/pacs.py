@@ -10,11 +10,11 @@ import gc
 
 from pacs_data_loader import LoadPacsData
 from ModelGen import Generate_Model_2
-
+from tensorflow.keras.applications.resnet50 import ResNet50
 
 learning_rate = 0.0001
-epochs = 3
-batch_size = 8
+epochs = 35
+batch_size = 4
 num_classes = 7
 
 
@@ -31,8 +31,8 @@ print("Test_unseen length = {}".format(len(test_unseen_x)))
 
 
 
-
-model = Generate_Model_2(num_classes, image_shape)
+model = ResNet50(input_shape=image_shape, classes=num_classes, weights=None)
+#model = Generate_Model_2(num_classes, image_shape)
 print(model.summary())
 
 
@@ -54,7 +54,7 @@ class checkpoint(tf.keras.callbacks.Callback):
     self.min_loss = 1000000
     self.min_weight = None
 
-  def on_epoch_end(self, epoch, logs=None):
+  def on_train_batch_end(self, batch, logs=None):
     val_loss = validate()
  
   

@@ -36,7 +36,7 @@ image_shape = (244, 244, 3)
 #default = 0.00005
 learning_rate = 0.0001
 
-epochs = 30
+epochs = 35
 batch_size = 16
 num_classes = 2
 
@@ -81,7 +81,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[3])
+setSeed(seeds[0])
 
 files = os.listdir("Weights")
 for file in files:
@@ -200,11 +200,11 @@ print("Label Shape: {}".format(train_y[0].shape))
 #model = ResNet50(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
-#model = ResNet18_2(2)
-#model.build(input_shape = (None,244,244,3))
-
-model = ResNet18_exp(2)
+model = ResNet18_2(2)
 model.build(input_shape = (None,244,244,3))
+
+#model = ResNet18_exp(2)
+#model.build(input_shape = (None,244,244,3))
 
 
 print(model.summary())
@@ -414,7 +414,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=swad_fake())
+              callbacks=swad_callback())
 
 elapsed_time = time.time() - start_time
 

@@ -55,15 +55,19 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 50
+epochs = 55
 batch_size = 16
 num_classes = 2
-runs = 20
+runs = 10
+
+rolling_window_size = 50
+swad_start_iter = 400
+
 results = []
 
-NS = 0
-NE = 0
-r = 1.2
+NS = 3
+NE = 3
+r = 0.9
 
 
 
@@ -315,6 +319,140 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 
 
+
+weights = []
+new_weights = list()
+
+
+#create callback for weight averaging
+class swad_callback_w(tf.keras.callbacks.Callback):
+
+    def __init__(self):
+
+        #list to track loss over training
+        self.iteration_tracker = 0
+        self.weights_saved = 0
+        self.min_loss = 100000000
+
+        self.rolling_last_weights = []
+        self.rolling_last_loss = []
+
+        self.curr_best_weight_hist = []
+        self.curr_best_loss_hist = []
+
+        self.curr_best_weight_right = []
+        self.curr_best_loss_right = []
+
+        self.best_loss_iteration = 0
+
+    def on_epoch_end(self, epoch, logs=None):
+        gc.collect()
+
+
+    #function called at the end of every batch
+    def on_train_batch_end(self, batch, logs=None):
+
+        #finds the validation loss after this batch
+        #this is very slow and this is why this takes a while
+
+        if self.iteration_tracker >= swad_start_iter:
+            val_loss = validate2()
+
+
+
+            #keeping track of the rolling window
+            self.rolling_last_loss.append(val_loss)
+            while len(self.rolling_last_loss) > rolling_window_size:
+                self.rolling_last_loss.pop(0)
+
+            self.rolling_last_weights.append(model.get_weights())
+            while len(self.rolling_last_weights) > rolling_window_size:
+                self.rolling_last_weights.pop(0)
+
+
+
+            #new min loss found
+            if val_loss < self.min_loss:
+                self.min_loss = val_loss
+                self.curr_best_weight_hist = self.rolling_last_weights
+                self.curr_best_loss_hist = self.rolling_last_loss
+
+                self.curr_best_loss_right.clear()
+                self.curr_best_weight_right.clear()
+
+                self.best_loss_iteration = self.iteration_tracker
+            
+            #save the weights after the minimum
+            if len(self.curr_best_loss_right) < rolling_window_size:
+                self.curr_best_loss_right.append(val_loss)
+                self.curr_best_weight_right.append(model.get_weights())
+            
+            #debugging
+            #print("{} : {}".format(len(self.curr_best_loss_hist), len(self.curr_best_loss_right)))
+
+
+
+
+        self.iteration_tracker += 1
+
+
+    #function called at the end of training
+    #NOTE WEIGHT AVERAGING HAPPENS HERE
+    def on_train_end(self, logs=None):
+        print("\nEnd of Training")
+
+        print("Absolute best loss at: {}".format(self.best_loss_iteration))
+
+
+        full_loss = self.curr_best_loss_hist + self.curr_best_loss_right
+        full_weights = self.curr_best_weight_hist + self.curr_best_weight_right
+
+        #finds the start and end iteration to average weights
+        ts, te, l = findStartAndEnd(full_loss, NS, NE, r)
+        print("ts is {} and te is {}".format(ts, te))
+
+        #optional plot the loss
+        #plt.plot(full_loss)
+        #plt.axvline(x=ts, color='r')
+        #plt.axvline(x=te, color='b')
+        #plt.show()
+
+
+
+        #optional save loss to csv
+        df = pd.DataFrame(full_loss)
+        df.to_csv('loss.csv') 
+
+        print("\nAveraging Weights.")
+
+        #ts = int(input("TS:"))
+        #te = int(input("TE:"))
+
+
+        for i, weight in enumerate(full_weights):
+            model.save_weights("Weights/weights_" + str(i) + ".h5")
+
+
+        new_weights = AverageWeights(model, 0, ((rolling_window_size*2) - 1), 200)
+
+
+        '''
+        #average up all saved weights and store them in new_weights
+        #NOTE Weight averaging!
+        for weights_list_tuple in zip(*saved_weights): 
+            new_weights.append(
+                np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
+            )8
+        '''
+
+        #set model weights to new average
+        if len(new_weights) > 0:
+            print("\nSetting new model weights.\n")
+            model.set_weights(new_weights)
+
+
+
+
 for i in range(runs):
 
     print("******* Run Number: {} *******".format(i))
@@ -357,7 +495,7 @@ for i in range(runs):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=checkpoint())
+                callbacks=swad_callback_w())
 
     #model evaluation
     scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)

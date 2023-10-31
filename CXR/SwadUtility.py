@@ -190,4 +190,4 @@ def findStartAndEnd3(loss, ns, ne, r):
         elif l < minVal(loss, i, ne):
             te = i - ne
     
-    return ts, te, 1
+    return ts, te, l
