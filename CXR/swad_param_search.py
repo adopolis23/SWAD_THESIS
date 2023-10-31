@@ -112,7 +112,7 @@ optim_R = None
 
 for NS in np.arange(1, 4, 1):
     for NE in np.arange(1, 4, 1):
-        for R in np.arange(0.1, 1.6, 0.1):
+        for R in np.arange(0.1, 2.0, 0.1):
             print("Testing parameters: {}, {}, {}".format(NS, NE, R))
 
             #find start and end iteration using current parameters
@@ -147,3 +147,6 @@ plt.plot(loss)
 plt.axvline(x=ts, color='r')
 plt.axvline(x=te, color='b')
 plt.show()
+
+#min at 1 1 1.1 
+#up to 1 2 1.8
