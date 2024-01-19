@@ -42,14 +42,14 @@ x_train = x_train.astype("float32") / 255
 x_test = x_test.astype("float32") / 255
 
 
-#x_valid = x_train[-5000:]
-#y_valid = y_train[-5000:]
+x_valid = x_train[-5000:]
+y_valid = y_train[-5000:]
 
-#x_train = x_train[:-5000]
-#y_train = y_train[:-5000]
+x_train = x_train[:-5000]
+y_train = y_train[:-5000]
 
-#x_test_ood = x_test
-#y_test_ood = y_test
+x_test_ood = x_test.copy()
+y_test_ood = y_test.copy()
 
 #create the velidation data
 #x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.1, random_state=0, stratify=y_train)
@@ -58,8 +58,27 @@ print("x_train.shape = ", x_train.shape)
 print("y_train.shape = ", y_train.shape)
 print("x_test.shape = ", x_test.shape)
 print("y_test.shape = ", y_test.shape)
-#print("x_valid.shape = ", x_valid.shape)
-#print("y_valid.shape = ", y_valid.shape)
+print("x_valid.shape = ", x_valid.shape)
+print("y_valid.shape = ", y_valid.shape)
+
+
+
+
+
+
+def add_gauss_noise(image, sigma, mean):
+    row,col,ch= image.shape
+    gauss = np.random.normal(mean,sigma,(row,col,ch))
+    gauss = gauss.reshape(row,col,ch)
+    noisy = image + gauss
+    return noisy
+
+for i, example in enumerate(x_test_ood):
+    x_test_ood[i] = add_gauss_noise(example, 0.35, 0)
+
+
+print("x_test_ood.shape = ", x_test_ood.shape)
+print("y_test_ood.shape = ", y_test_ood.shape)
 
 
 for i in range(1):
@@ -87,7 +106,7 @@ for i in range(1):
     model.fit(
         x_train, y_train,
         batch_size=batch_size,
-        #validation_data=(x_valid, y_valid),
+        validation_data=(x_valid, y_valid),
         epochs=epochs,
         shuffle=True,
         verbose=2
