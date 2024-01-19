@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from SwadUtility import AverageWeights, findStartAndEnd2
+from SwadUtility import AverageWeights, findStartAndEnd2, findStartAndEnd3
 import matplotlib.pyplot as plt
 #from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
@@ -106,15 +106,31 @@ for i, x in enumerate(loss_vals):
         min_index = i
 
 print("Lowest loss at iteration: {}".format(min_index))
-ts, te, l = findStartAndEnd2(loss_vals)
-print("ts: {}, te: {}".format(ts, te))
 
 
+tsp, tep, l = findStartAndEnd2(loss_vals)
+tso, teo, l = findStartAndEnd3(loss_vals, 3, 6, 1.2)
 
-plt.plot(loss_vals)
-plt.axvline(x=ts, color='r')
-plt.axvline(x=te, color='b')
+fig, (ax1, ax2) = plt.subplots(1, 2)
+
+ax1.plot(loss_vals)
+ax1.axvline(x=tso, color='r')
+ax1.axvline(x=teo, color='b')
+ax1.set(xlabel="Iteration", ylabel="Validation Loss")
+
+ax2.plot(loss_vals)
+ax2.axvline(x=tsp, color='r')
+ax2.axvline(x=tep, color='b')
+ax2.set(xlabel="Iteration", ylabel="Validation Loss")
+
 plt.show()
+
+
+
+#plt.plot(loss_vals)
+#plt.axvline(x=ts, color='r')
+#plt.axvline(x=te, color='b')
+#plt.show()
 
 
 

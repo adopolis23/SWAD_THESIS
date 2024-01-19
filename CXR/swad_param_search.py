@@ -4,8 +4,9 @@ import pandas as pd
 import os
 import cv2
 import matplotlib.pyplot as plt
-from SwadUtility import AverageWeights, findStartAndEnd
+from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd3
 from ModelGen import ResNet18_2
+from ResNet18exp import ResNet18_exp
 
 
 test_path = "data/test-seen"
@@ -16,8 +17,8 @@ image_size = (244, 244)
 loss = pd.read_csv("loss.csv")
 loss = list(loss.iloc[:,1])
 
-#plt.plot(loss)
-#plt.show()
+plt.plot(loss)
+plt.show()
 
 
 test_seen_x = []
@@ -89,7 +90,7 @@ test_unseen_x = np.asarray(test_unseen_x)
 
 
 
-model = ResNet18_2(2)
+model = ResNet18_exp(2)
 model.build(input_shape = (None,244,244,3))
 
 
@@ -106,24 +107,62 @@ model.compile(loss="categorical_crossentropy",
 
 
 min_loss = 100000000
-optim_NS = None
-optim_NE = None
-optim_R = None
+optim_NS = 1
+optim_NE = 1
+optim_R = 0.1
 
-for NS in np.arange(1, 4, 1):
-    for NE in np.arange(1, 4, 1):
-        for R in np.arange(0.1, 2.0, 0.1):
+
+'''
+ts, te, l = findStartAndEnd(loss, optim_NS, optim_NE, optim_R)
+weights = AverageWeights(model, ts, te, 200)
+print("TS={} TE={}".format(ts, te))
+model.set_weights(weights)
+scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)
+curr_loss = scores[0]
+if curr_loss < min_loss:
+    min_loss = curr_loss
+    print("Starting loss = {}".format(min_loss))
+'''
+
+tested_params = []
+
+for NS in np.arange(1, 50, 1):
+    for NE in np.arange(1, 50, 1):
+        for R in np.arange(0.1, 5.0, 0.1):
+
             print("Testing parameters: {}, {}, {}".format(NS, NE, R))
 
             #find start and end iteration using current parameters
-            ts, te, l = findStartAndEnd(loss, NS, NE, R)
+            ts, te, l = findStartAndEnd3(loss, NS, NE, R)
+            print("TS={} TE={}".format(ts, te))
+
+            if (ts, te) in tested_params:
+                print("Skipping test already completed")
+                continue
 
             #if end is less than or equal to start then doesnt make sense
             if te <= ts:
                 print("Skipping test te <= ts")
                 continue
 
+            if ts == 0 or te == len(loss) or te == len(loss)-1:
+                print("Skipping test ts=0 or te=end")
+                continue
+
+            if te < 0:
+                print("Skipping test te < 0")
+                continue
+
+            if (te - ts) > 400:
+                print("Skipping te - ts > 400")
+                continue
+
+            if ts < 5:
+                print("Skipping ts < 5")
+                continue
+
             #get new average weight
+            print("Averaging Weights....")
             weights = AverageWeights(model, ts, te, 200)
 
             #set model weights
@@ -135,12 +174,20 @@ for NS in np.arange(1, 4, 1):
 
             #if loss is new min then log parameters
             if curr_loss < min_loss:
-                print("New min loss found. NS={} NE={} R={}".format(NS, NE, R))
+                print("New min loss found. NS={} NE={} R={} ****************************".format(NS, NE, R))
+
+                df = pd.DataFrame([NS, NE, R])
+                df.to_csv('optim_params.csv') 
+
                 min_loss = curr_loss
                 optim_NS = NS
                 optim_NE = NE
                 optim_R = R
+            
+            tested_params.append((ts, te))
 
+
+print("CURRENT BEST PARAMETERS NS={} NE={} R={}".format(optim_NS, optim_NE, optim_R))
 
 ts, te, l = findStartAndEnd(loss, optim_NS, optim_NE, optim_R)
 plt.plot(loss)
@@ -148,5 +195,5 @@ plt.axvline(x=ts, color='r')
 plt.axvline(x=te, color='b')
 plt.show()
 
-#min at 1 1 1.1 
-#up to 1 2 1.8
+
+#up to 6 3 0.9

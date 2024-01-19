@@ -12,12 +12,13 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2
+from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2, findStartAndEnd3
 import matplotlib.pyplot as plt
 #from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 
 from ModelGen import ResNet18_2
 from ResNet18exp import ResNet18_exp
+from resnet9exp import ResNet9_exp
 from modified_densenet import DenseNet121
 
 
@@ -55,19 +56,19 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 55
+epochs = 35
 batch_size = 16
 num_classes = 2
-runs = 10
+runs = 20
 
 rolling_window_size = 50
-swad_start_iter = 400
+swad_start_iter = 300
 
 results = []
 
 NS = 3
 NE = 3
-r = 0.9
+r = 1.2
 
 
 
@@ -278,7 +279,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("\nEnd of Training")
 
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd2(self.loss_tracker, NS, NE, r)
+        ts, te, l = findStartAndEnd2(self.loss_tracker)
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
@@ -322,6 +323,61 @@ class swad_callback(tf.keras.callbacks.Callback):
 
 weights = []
 new_weights = list()
+
+
+
+#create callback for weight averaging
+class swad_callback_paper(tf.keras.callbacks.Callback):
+
+    def __init__(self):
+        self.ts = 0
+        self.te = (int(len(train_x)/batch_size)-1) * epochs
+        self.l = None
+        
+        self.averaged_model_param = None
+        self.num_averaged = 0
+        self.loss_tracker = []
+        
+        self.curr_iter = 0
+        
+    #function called at the end of every batch
+    def on_train_batch_end(self, batch, logs=None):
+        self.loss_tracker.append(validate())
+        
+        if self.curr_iter >= 10:
+            if self.l == None:
+                if self.loss_tracker[self.curr_iter-NS+1] == minVal(self.loss_tracker, self.curr_iter, NS):
+                    self.ts = batch - NS + 1
+                    self.l = avgLastR(self.loss_tracker, self.curr_iter, NS, r)
+                    print("L set to {} ***".format(self.l))
+                    print("TS set to {} ***".format(self.ts))
+            if self.l != None and self.l < minVal(self.loss_tracker, self.curr_iter, NE):
+                te = self.curr_iter - NE
+                print("TE set to {} ***".format(self.te))
+
+            #if the start iteration has been encountered
+            if self.l != None:
+                if self.averaged_model_param == None:
+                    self.averaged_model_param = model.get_weights()
+                else:
+                    self.averaged_model_param = avg_fn_a(self.averaged_model_param, model.get_weights(), self.num_averaged)
+                    self.num_averaged += 1
+
+            #early stopping condition
+            if self.curr_iter > self.te:
+                self.model.stop_training = True
+    
+        self.curr_iter += 1
+        
+    def on_train_end(self, logs=None):
+        print("TS is {}".format(self.ts))
+        print("TE is {}".format(self.te))
+        
+        df = pd.DataFrame(self.loss_tracker)
+        df.to_csv('loss.csv') 
+        
+        print("Setting model weights...")
+        model.set_weights(self.averaged_model_param)
 
 
 #create callback for weight averaging
@@ -408,14 +464,14 @@ class swad_callback_w(tf.keras.callbacks.Callback):
         full_weights = self.curr_best_weight_hist + self.curr_best_weight_right
 
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd(full_loss, NS, NE, r)
+        ts, te, l = findStartAndEnd3(full_loss, NS, NE, r)
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
-        #plt.plot(full_loss)
-        #plt.axvline(x=ts, color='r')
-        #plt.axvline(x=te, color='b')
-        #plt.show()
+        plt.plot(full_loss)
+        plt.axvline(x=ts, color='r')
+        plt.axvline(x=te, color='b')
+        plt.show()
 
 
 
@@ -453,7 +509,7 @@ class swad_callback_w(tf.keras.callbacks.Callback):
 
 
 
-for i in range(runs):
+for i in range(10, runs):
 
     print("******* Run Number: {} *******".format(i))
 
@@ -473,7 +529,10 @@ for i in range(runs):
     #model = Generate_Model_2(num_classes, image_shape)
     #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
-    model = ResNet18_exp(2)
+    #model = ResNet18_2(2)
+    #model.build(input_shape = (None,244,244,3))
+
+    model = ResNet9_exp(2)
     model.build(input_shape = (None,244,244,3))
     #print(model.summary())
 
@@ -495,7 +554,7 @@ for i in range(runs):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=swad_callback_w())
+                callbacks=swad_callback())
 
     #model evaluation
     scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)

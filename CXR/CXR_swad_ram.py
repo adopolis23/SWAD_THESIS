@@ -36,14 +36,14 @@ image_shape = (244, 244, 3)
 #default = 0.00005
 learning_rate = 0.0001
 
-epochs = 35
+epochs = 40
 batch_size = 16
 num_classes = 2
 
 #swad parameters
-NS = 3
-NE = 3
-r = 1.2
+NS = 6
+NE = 6
+r = 1.1
 
 
 
@@ -81,7 +81,7 @@ def setSeed(seed):
     #from tensorflow.keras import backend as K
     #K.set_image_data_format('channels_first')
 
-setSeed(seeds[0])
+setSeed(seeds[6])
 
 files = os.listdir("Weights")
 for file in files:
@@ -196,12 +196,12 @@ print("Label Shape: {}".format(train_y[0].shape))
 
 
 #model = Generate_Model_2(num_classes, image_shape)
-#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
+model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet50(input_shape=image_shape, classes=num_classes, weights=None)
 #model = ResNet18(input_shape=image_shape, classes=num_classes)
 
-model = ResNet18_2(2)
-model.build(input_shape = (None,244,244,3))
+##model = ResNet18_2(2)
+#model.build(input_shape = (None,244,244,3))
 
 #model = ResNet18_exp(2)
 #model.build(input_shape = (None,244,244,3))
@@ -232,9 +232,11 @@ class checkpoint(tf.keras.callbacks.Callback):
     def __init__(self):
         self.min_loss = 1000000
         self.min_weight = None
+        self.loss_tracker = []
 
     def on_train_batch_end(self, epoch, logs=None):
         val_loss = validate2()
+        self.loss_tracker.append(val_loss)
 
         if val_loss < self.min_loss:
             #print("\nValidation loss improved saving weights\n")
@@ -244,6 +246,25 @@ class checkpoint(tf.keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         print("\nSetting new model weights.\n")
         model.set_weights(self.min_weight)
+
+        tsp, tep, l = findStartAndEnd2(self.loss_tracker)
+        tso, teo, l = findStartAndEnd3(self.loss_tracker, NS, NE, r)
+
+        print("TS is {} : TE is {}".format(tso, teo))
+
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+        
+        ax1.plot(self.loss_tracker, color="black")
+        ax1.axvline(x=tso, color='r')
+        ax1.axvline(x=teo, color='b')
+        ax1.set(xlabel="Iteration", ylabel="Validation Loss")
+
+        ax2.plot(self.loss_tracker, color="black")
+        ax2.axvline(x=tsp, color='r')
+        ax2.axvline(x=tep, color='b')
+        ax2.set(xlabel="Iteration", ylabel="Validation Loss")
+
+        plt.show()
 
 
 
@@ -414,7 +435,7 @@ model.fit(x=np.array(train_x, np.float32),
               batch_size=batch_size,
               epochs=epochs,
               shuffle=True,
-              callbacks=swad_callback())
+              callbacks=checkpoint())
 
 elapsed_time = time.time() - start_time
 

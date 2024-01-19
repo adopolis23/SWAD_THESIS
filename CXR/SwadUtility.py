@@ -136,13 +136,15 @@ def findStartAndEnd2(loss, NS=0.0, NE=0.0, r=1.0):
     l = 1
     minIndex, minVal = findArrayMin(loss)
 
+    print("MinIndex is: {}".format(minIndex))
     TS = minIndex
     TE = minIndex + 1
 
-    while loss[TS-1] >= loss[TS] - NS and loss[TS-2] >= loss[TS] - NS:
+    while TS >= 3 and loss[TS-1] >= loss[TS] - NS and loss[TS-2] >= loss[TS] - NS:
          TS = TS - 1
     
-    while loss[TE+1] >= loss[TE] - NE and loss[TE+2] >= loss[TE] - NE:
+
+    while TE <= len(loss)-3 and loss[TE+1] >= loss[TE] - NE and loss[TE+2] >= loss[TE] - NE:
          TE = TE + 1
         
     return TS, TE, l
