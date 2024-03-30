@@ -7,7 +7,7 @@ import random
 
 
 
-def LoadPacsData(val_size_percent = 0.1, test_seen_size_percent = 0.1):
+def LoadPacsData(val_size_percent = 0.1, test_seen_size_percent = 0.1, train_size_percent = 1.0):
 
     data_folder = "data/"
 
@@ -58,7 +58,10 @@ def LoadPacsData(val_size_percent = 0.1, test_seen_size_percent = 0.1):
 
             #load the seen data inso training
             files = os.listdir(data_folder + domain + _class)
-            
+
+            #cut down training data based on train_size_percent; removed that percentage of files for each class
+            files = files[:int(len(files)*train_size_percent)]
+
             for file in files:
 
                 image = cv2.imread(data_folder + domain + _class + file)

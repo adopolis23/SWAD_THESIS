@@ -56,18 +56,20 @@ image_size = (244, 244)
 image_shape = (244, 244, 3)
 learning_rate = 0.00005
 
-epochs = 35
+
+#default bs is 16
+epochs = 50
 batch_size = 16
 num_classes = 2
-runs = 20
+runs = 1
 
 rolling_window_size = 50
 swad_start_iter = 300
 
 results = []
 
-NS = 3
-NE = 3
+NS = 6
+NE = 6
 r = 1.2
 
 
@@ -212,16 +214,23 @@ def validate2():
 
 
 
+num_iter_per_epoch = int(len(train_x) / batch_size)
+print("Iterations per epoch: {}".format(num_iter_per_epoch))
 
+
+new_algo_widths = []
+original_algo_widths = []
 
 class checkpoint(tf.keras.callbacks.Callback):
 
     def __init__(self):
         self.min_loss = 1000000
         self.min_weight = None
+        self.loss_tracker = []
 
     def on_train_batch_end(self, epoch, logs=None):
         val_loss = validate2()
+        self.loss_tracker.append(val_loss)
 
         if val_loss < self.min_loss:
             #print("\nValidation loss improved saving weights\n")
@@ -231,6 +240,44 @@ class checkpoint(tf.keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         print("\nSetting new model weights.\n")
         model.set_weights(self.min_weight)
+
+        df = pd.DataFrame(self.loss_tracker)
+        df.to_csv('loss.csv') 
+
+        tsp, tep, l = findStartAndEnd2(self.loss_tracker)
+        tso, teo, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
+
+        new_algo_width = (tep - tsp)
+        original_algo_width = (teo - tso)
+
+        new_algo_widths.append(new_algo_width)
+        original_algo_widths.append(original_algo_width)
+
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+    
+        tso = 37
+        teo = 875
+
+        tsp = 361
+        tep = 414
+
+        ax1.plot(self.loss_tracker, color='black')
+        ax1.axvline(x=tso, color='r')
+        ax1.axvline(x=teo, color='b')
+        ax1.set(xlabel="Iteration", ylabel="Validation Loss")
+
+        ax2.plot(self.loss_tracker, color='black')
+        ax2.axvline(x=tsp, color='r')
+        ax2.axvline(x=tep, color='b')
+        ax2.set(xlabel="Iteration", ylabel="Validation Loss")
+
+        for i in range(50, 1700, 50):
+            ax1.axvline(x=i,linewidth=0.5, color='gray')
+            ax2.axvline(x=i,linewidth=0.5, color='gray')
+
+        plt.show()
+        
+
 
 
 
@@ -279,7 +326,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("\nEnd of Training")
 
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd2(self.loss_tracker)
+        ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
@@ -509,7 +556,7 @@ class swad_callback_w(tf.keras.callbacks.Callback):
 
 
 
-for i in range(10, runs):
+for i in range(runs):
 
     print("******* Run Number: {} *******".format(i))
 
@@ -517,7 +564,7 @@ for i in range(10, runs):
     for file in weights_folder:
         os.remove("Weights/"+file)
 
-    setSeed(seeds[i])
+    setSeed(seeds[2])
 
     model = None
     opt = None
@@ -529,11 +576,11 @@ for i in range(10, runs):
     #model = Generate_Model_2(num_classes, image_shape)
     #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
-    #model = ResNet18_2(2)
-    #model.build(input_shape = (None,244,244,3))
-
-    model = ResNet9_exp(2)
+    model = ResNet18_exp(2)
     model.build(input_shape = (None,244,244,3))
+
+    #model = ResNet9_exp(2)
+    #model.build(input_shape = (None,244,244,3))
     #print(model.summary())
 
 
@@ -554,7 +601,7 @@ for i in range(10, runs):
                 batch_size=batch_size,
                 epochs=epochs,
                 shuffle=True,
-                callbacks=swad_callback())
+                callbacks=checkpoint())
 
     #model evaluation
     scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)
@@ -579,6 +626,26 @@ print("\n\n Final Results:\n")
 for i, x in enumerate(results):
     print("\nRun: {}, Loss-Seen: {}".format(i, x[0]))
     print("\nRun: {}, Loss-unSeen: {}".format(i, x[1]))
+
+
+
+num_iter_per_epoch = int(len(train_x)/batch_size)
+
+#for width in new_algo_widths:
+new_avg_epochs_list = [x/num_iter_per_epoch for x in new_algo_widths]
+avg_epochs_new = sum(new_avg_epochs_list) / len(new_avg_epochs_list)
+
+new_algo_widths = [x for x in new_algo_widths if x < num_iter_per_epoch]
+n_new_sub_epoch = len(new_algo_widths)
+
+original_avg_epochs_list = [x/num_iter_per_epoch for x in original_algo_widths]
+avg_epochs_original = sum(original_avg_epochs_list) / len(original_avg_epochs_list)
+
+original_algo_widths = [x for x in original_algo_widths if x < num_iter_per_epoch]
+n_original_sub_epoch = len(original_algo_widths)
+
+print("\nProposed algorithm was sub epoch {}%; Avg number of epochs chosen: {}".format((n_new_sub_epoch/runs * 100), avg_epochs_new))
+print("Original algorithm was sub epoch {}%; Avg number of epochs chosen: {}".format((n_original_sub_epoch/runs * 100), avg_epochs_original))
 
 
 

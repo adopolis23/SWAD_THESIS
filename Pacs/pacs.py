@@ -8,6 +8,7 @@ import random
 import time
 import gc
 
+from resnet9exp import ResNet9_exp
 from pacs_data_loader import LoadPacsData
 from ModelGen import Generate_Model_2
 from SwadUtility import AverageWeights, findStartAndEnd, findStartAndEnd2, findStartAndEnd3
@@ -15,15 +16,17 @@ from ResNet18exp import ResNet18_exp
 from ModelGen import ResNet18_2
 from tensorflow.keras.applications.resnet50 import ResNet50
 
+from modified_densenet import DenseNet121
+
 learning_rate = 0.0001
-epochs = 10
+epochs = 20
 batch_size = 32
 num_classes = 7
 runs = 1
 
 #swad parameters
-NS = 3
-NE = 3
+NS = 8
+NE = 6
 r = 1.2
 
 
@@ -50,16 +53,21 @@ def setSeed(seed):
 
 
 
-image_size = (227, 227)
-image_shape = (227, 227, 3)
+image_size = (224, 224)
+image_shape = (224, 224, 3)
 
 
-train_x, train_y, val_x, val_y, test_seen_x, test_seen_y, test_unseen_x, test_unseen_y = LoadPacsData()
+train_x, train_y, val_x, val_y, test_seen_x, test_seen_y, test_unseen_x, test_unseen_y = LoadPacsData(train_size_percent=0.10)
 
 print("Train length = {}".format(len(train_x)))
 print("Val length = {}".format(len(val_x)))
 print("Test_seen length = {}".format(len(test_seen_x)))
 print("Test_unseen length = {}".format(len(test_unseen_x)))
+
+
+
+
+
 
 
 
@@ -71,8 +79,12 @@ def validate():
   val_loss = bce(val_y, y_pred).numpy()
   return val_loss
 
+def acc():
+    return model.evaluate(val_x, val_y, verbose=0)[1]
 
 
+new_algo_widths = []
+original_algo_widths = []
 
 class checkpoint(tf.keras.callbacks.Callback):
 
@@ -80,13 +92,17 @@ class checkpoint(tf.keras.callbacks.Callback):
     self.min_loss = 1000000
     self.min_weight = None
     self.loss_tracker = []
+    self.accuracy_tracker = []
 
   def on_train_batch_end(self, batch, logs=None):
+    
     val_loss = validate()
+    curr_acc = acc()
     self.loss_tracker.append(val_loss)
-  
+    self.accuracy_tracker.append(curr_acc)
+
     if val_loss < self.min_loss:
-        print("\nValidation loss improved saving weights\n")
+        #print("\nValidation loss improved saving weights\n")
         self.min_loss = val_loss
         self.min_weight = model.get_weights()
 
@@ -94,20 +110,46 @@ class checkpoint(tf.keras.callbacks.Callback):
     print("\nSetting new model weights.\n")
     model.set_weights(self.min_weight)
 
+    df = pd.DataFrame(self.loss_tracker)
+    df.to_csv('loss.csv') 
+    
     tsp, tep, l = findStartAndEnd2(self.loss_tracker)
-    tso, teo, l = findStartAndEnd3(self.loss_tracker, NS, NE, r)
+    tso, teo, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
+    new_algo_widths.append(tep - tsp)
+    original_algo_widths.append(teo - tso)
 
+    
     fig, (ax1, ax2) = plt.subplots(1, 2)
     
-    ax1.plot(self.loss_tracker)
+    '''
+    ax1.plot(self.accuracy_tracker, color='black')
+    ax1.axvline(x=tso, color='r')
+    ax1.axvline(x=teo, color='b')
+    ax1.set(xlabel="Iteration", ylabel="Validation Accuracy")
+
+    ax2.plot(self.accuracy_tracker, color='black')
+    ax2.axvline(x=tsp, color='r')
+    ax2.axvline(x=tep, color='b')
+    ax2.set(xlabel="Iteration", ylabel="Validation Accuracy")
+    '''
+  
+
+    ax1.plot(self.loss_tracker, color='black')
     ax1.axvline(x=tso, color='r')
     ax1.axvline(x=teo, color='b')
     ax1.set(xlabel="Iteration", ylabel="Validation Loss")
 
-    ax2.plot(self.loss_tracker)
+    ax2.plot(self.loss_tracker, color='black')
     ax2.axvline(x=tsp, color='r')
     ax2.axvline(x=tep, color='b')
     ax2.set(xlabel="Iteration", ylabel="Validation Loss")
+
+    for i in range(50, 1100, 50):
+       ax1.axvline(x=i,linewidth=0.5, color='gray')
+       ax2.axvline(x=i,linewidth=0.5, color='gray')
+
+    plt.show()
+    
 
 
 
@@ -160,7 +202,8 @@ class swad_callback(tf.keras.callbacks.Callback):
         print("\nEnd of Training")
 
         #finds the start and end iteration to average weights
-        ts, te, l = findStartAndEnd2(self.loss_tracker, NS, NE, r)
+        #ts, te, l = findStartAndEnd(self.loss_tracker, NS, NE, r)
+        ts, te, l = findStartAndEnd2(self.loss_tracker)
         print("ts is {} and te is {}".format(ts, te))
 
         #optional plot the loss
@@ -190,7 +233,7 @@ class swad_callback(tf.keras.callbacks.Callback):
         for weights_list_tuple in zip(*saved_weights): 
             new_weights.append(
                 np.array([np.array(w).mean(axis=0) for w in zip(*weights_list_tuple)])
-            )8
+            )
         '''
 
         #set model weights to new average
@@ -209,7 +252,7 @@ for i in range(runs):
     for file in weights_folder:
         os.remove("Weights/"+file)
 
-    setSeed(seeds[i])
+    setSeed(seeds[0])
 
     model = None
     opt = None
@@ -218,12 +261,15 @@ for i in range(runs):
 
     #setSeed()
 
-    #model = Generate_Model_2(num_classes, image_shape)
+    model = Generate_Model_2(num_classes, image_shape)
     #model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
 
-    model = ResNet18_exp(7)
-    model.build(input_shape = (None,244,244,3))
+    #model = ResNet18_exp(7)
+    #model.build(input_shape = (None,244,244,3))
     #print(model.summary())
+
+    #model = ResNet9_exp(7)
+    #model.build(input_shape = (None, 244, 244, 3))
 
 
     #Adam optimizer with learning rate and 0.9 momentum
@@ -268,3 +314,25 @@ print("\n\n Final Results:\n")
 for i, x in enumerate(results):
     print("\nRun: {}, Loss-Seen: {}".format(i, x[0]))
     print("\nRun: {}, Loss-unSeen: {}".format(i, x[1]))
+
+
+
+num_iter_per_epoch = int(len(train_x)/batch_size)
+
+#for width in new_algo_widths:
+new_avg_epochs_list = [x/num_iter_per_epoch for x in new_algo_widths]
+avg_epochs_new = sum(new_avg_epochs_list) / len(new_avg_epochs_list)
+
+new_algo_widths = [x for x in new_algo_widths if x < num_iter_per_epoch]
+n_new_sub_epoch = len(new_algo_widths)
+
+original_avg_epochs_list = [x/num_iter_per_epoch for x in original_algo_widths]
+avg_epochs_original = sum(original_avg_epochs_list) / len(original_avg_epochs_list)
+
+original_algo_widths = [x for x in original_algo_widths if x < num_iter_per_epoch]
+n_original_sub_epoch = len(original_algo_widths)
+
+print("\nProposed algorithm was sub epoch {}%; Avg number of epochs chosen: {}".format((n_new_sub_epoch/runs * 100), avg_epochs_new))
+print("Original algorithm was sub epoch {}%; Avg number of epochs chosen: {}".format((n_original_sub_epoch/runs * 100), avg_epochs_original))
+
+    

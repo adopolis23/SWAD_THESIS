@@ -12,14 +12,12 @@ from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, BatchNo
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from ModelGen import Generate_Model_2, LeNet
-from SwadUtility import AverageWeights, findStartAndEnd2, findStartAndEnd3
+from SwadUtility import AverageWeights, findStartAndEnd2, findStartAndEnd3, findStartAndEnd
 import matplotlib.pyplot as plt
 #from tensorflow.keras.applications.densenet import DenseNet201, DenseNet121 #dense 121 working
 from tensorflow.keras.applications.efficientnet import EfficientNetB1 #working
 
-from ModelGen import ResNet18_2
-from ResNet18exp import ResNet18_exp
-from modified_densenet import DenseNet121
+
 
 test_path = "data/test-seen"
 test_path_unseen = "data/test-unseen"
@@ -42,7 +40,7 @@ test_unseen_y = []
 
 
 
-
+'''
 # LOAD TEST-SEEN DATA
 for file in os.listdir(test_path + "/covid"):
     
@@ -92,11 +90,14 @@ for file in os.listdir(test_path_unseen + "/pneumonia"):
 test_unseen_y = np.asarray(test_unseen_y).reshape(-1, 2)
 test_unseen_x = np.asarray(test_unseen_x)
 # ----------------
-
+'''
 
 
 loss = pd.read_csv("loss.csv")
 loss_vals = list(loss.iloc[:,1])
+
+#accuracy = pd.read_csv("accuracy.csv")
+#accuracy_vals = list(accuracy.iloc[:,1])
 
 min_index = 0
 min_val = 1000000000
@@ -109,67 +110,39 @@ print("Lowest loss at iteration: {}".format(min_index))
 
 
 tsp, tep, l = findStartAndEnd2(loss_vals)
-tso, teo, l = findStartAndEnd3(loss_vals, 3, 6, 1.2)
+tso, teo, l = findStartAndEnd(loss_vals, 6, 6, 1.2)
+
+
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
-ax1.plot(loss_vals)
+'''
+ax1.plot(self.accuracy_tracker, color='black')
+ax1.axvline(x=tso, color='r')
+ax1.axvline(x=teo, color='b')
+ax1.set(xlabel="Iteration", ylabel="Validation Accuracy")
+
+ax2.plot(self.accuracy_tracker, color='black')
+ax2.axvline(x=tsp, color='r')
+ax2.axvline(x=tep, color='b')
+ax2.set(xlabel="Iteration", ylabel="Validation Accuracy")
+'''
+tsp = 1225
+
+
+ax1.plot(loss_vals, color='black')
 ax1.axvline(x=tso, color='r')
 ax1.axvline(x=teo, color='b')
 ax1.set(xlabel="Iteration", ylabel="Validation Loss")
 
-ax2.plot(loss_vals)
+ax2.plot(loss_vals, color='black')
 ax2.axvline(x=tsp, color='r')
 ax2.axvline(x=tep, color='b')
 ax2.set(xlabel="Iteration", ylabel="Validation Loss")
 
+for i in range(50, 2100, 50):
+    ax1.axvline(x=i,linewidth=0.5, color='gray')
+    ax2.axvline(x=i,linewidth=0.5, color='gray')
+
 plt.show()
 
-
-
-#plt.plot(loss_vals)
-#plt.axvline(x=ts, color='r')
-#plt.axvline(x=te, color='b')
-#plt.show()
-
-
-
-#model = Generate_Model_2(num_classes, image_shape)
-#model = EfficientNetB1(input_shape=image_shape, classes=num_classes, weights=None)
-#model = DenseNet121(input_shape=image_shape, classes=num_classes, weights=None)
-#model = ResNet18_2(2)
-#model.build(input_shape = (None,244,244,3))
-
-model = ResNet18_exp(2)
-model.build(input_shape = (None,244,244,3))
-#print(model.summary())
-
-
-opt = tf.keras.optimizers.Adam(learning_rate=learning_rate) 
-model.compile(loss="categorical_crossentropy",
-              optimizer=opt,
-              metrics=['accuracy'])
-
-
-
-ts = int(input("TS:"))
-te = int(input("TE:"))
-
-if ts == te:
-    model.load_weights('Weights/weights_' + str(ts) + '.h5')
-else:
-    new_weights = AverageWeights(model, ts, te, 200)
-
-    print("\nSetting new model weights.\n")
-    model.set_weights(new_weights)
-
-
-#model evaluation
-scores = model.evaluate(test_seen_x, test_seen_y, verbose=1)
-print('Test loss seen:', scores[0])
-print('Test accuracy seen:', scores[1])
-
-#model evaluation
-scores_unseen = model.evaluate(test_unseen_x, test_unseen_y, verbose=1)
-print('Test loss unseen:', scores_unseen[0])
-print('Test accuracy unseen:', scores_unseen[1])
